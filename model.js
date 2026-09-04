@@ -3,7 +3,7 @@ let session = null;
 const classConfidenceThresholds = {
     motorcycle: 0.10,
     car: 0.15,
-    bus: 0.45,
+    bus: 0.25,
     truck: 0.25
 };
 

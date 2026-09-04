@@ -75,9 +75,13 @@ export function matchAndCountVehicles(detections) {
             const currentBottom = centerY + height / 2;
             const movedDown = centerY > oldData.cy;
             const movedUp = centerY < oldData.cy;
-            const currentCountSide = getCountLineSide(centerX, centerY);
-            const crossedDown = oldData.countLineSide < 0 && currentCountSide >= 0;
-            const crossedUp = oldData.countLineSide > 0 && currentCountSide <= 0;
+            const currentCenterSide = getCountLineSide(centerX, centerY);
+            const currentFrontSideDown = getCountLineSide(centerX, y + height);
+            const currentFrontSideUp = getCountLineSide(centerX, y);
+            const previousFrontSideDown = oldData.frontSideDown || oldData.countLineSide;
+            const previousFrontSideUp = oldData.frontSideUp || oldData.countLineSide;
+            const crossedDown = previousFrontSideDown < 0 && currentFrontSideDown >= 0;
+            const crossedUp = previousFrontSideUp > 0 && currentFrontSideUp <= 0;
             const sweptDown = crossedDown;
             const sweptUp = crossedUp;
             let crossed = false;
@@ -134,7 +138,9 @@ export function matchAndCountVehicles(detections) {
             stopLineSide: oldData?.stopLineSide || stopLineSide,
             stopLineCrossed: oldData ? oldData.stopLineCrossed : false,
             violationRecorded: oldData ? oldData.violationRecorded : false,
-            countLineSide: oldData?.countLineSide || getCountLineSide(centerX, centerY),
+            countLineSide: oldData?.countLineSide || currentCenterSide,
+            frontSideDown: oldData?.frontSideDown || getCountLineSide(centerX, centerY + height / 2),
+            frontSideUp: oldData?.frontSideUp || getCountLineSide(centerX, centerY - height / 2),
             time: nowTime,
             vx: Math.max(-1000, Math.min(1000, velocityX)),
             vy: Math.max(-1000, Math.min(1000, velocityY))
