@@ -35,7 +35,7 @@ export function drawScene(vehicles) {
             ctx.fillRect(x, y > 18 ? y - 18 : 0, 110, 16);
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 10px Segoe UI';
-            ctx.fillText(`${vehicle.className.toUpperCase()} #${vehicle.id} (${(vehicle.confidence * 100).toFixed(0)}%)`, x + 2, y > 18 ? y - 5 : 12);
+            ctx.fillText(`ID #${vehicle.id}`, x + 2, y > 18 ? y - 5 : 12);
         });
     }
 
@@ -135,7 +135,7 @@ function drawTrafficLightTools() {
     const endY = stopLineConfig.end.y * canvas.height;
     ctx.save();
     if (overlayVisibility.trafficLight) {
-        ctx.fillStyle = 'rgba(14, 165, 233, 0.12)';
+        ctx.fillStyle = 'rgba(127, 29, 29, 0.72)';
         ctx.fillRect(roiX, roiY, roiWidth, roiHeight);
     }
     if (!overlayVisibility.trafficLight && !overlayVisibility.stopLine) return;

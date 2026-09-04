@@ -103,10 +103,7 @@ export function matchAndCountVehicles(detections) {
             if (getTrafficLightState() === 'red' && redStartedAt && nowTime >= redStartedAt && !oldData.violationRecorded) {
                 oldData.violationRecorded = true;
                 const evidenceName = `red-light-${assignedId}-${nowTime}.png`;
-                const evidenceLink = document.createElement('a');
-                evidenceLink.download = evidenceName;
-                evidenceLink.href = canvas.toDataURL('image/png');
-                evidenceLink.click();
+                captureVehicleEvidence(detection.bbox, evidenceName);
                 recordTrafficViolation({ id: assignedId, className: detection.className, evidenceName });
             }
         }
@@ -141,4 +138,26 @@ export function matchAndCountVehicles(detections) {
     });
 
     return activeVehicles;
+}
+
+function captureVehicleEvidence(bbox, fileName) {
+    const [x, y, width, height] = bbox;
+    const marginX = Math.max(width * 0.45, 40);
+    const marginY = Math.max(height * 0.45, 40);
+    const sourceX = Math.max(0, x - marginX);
+    const sourceY = Math.max(0, y - marginY);
+    const sourceRight = Math.min(canvas.width, x + width + marginX);
+    const sourceBottom = Math.min(canvas.height, y + height + marginY);
+    const cropWidth = Math.max(1, sourceRight - sourceX);
+    const cropHeight = Math.max(1, sourceBottom - sourceY);
+    const evidenceCanvas = document.createElement('canvas');
+    const scale = Math.min(3, Math.max(1, 900 / cropWidth));
+    evidenceCanvas.width = Math.round(cropWidth * scale);
+    evidenceCanvas.height = Math.round(cropHeight * scale);
+    const evidenceContext = evidenceCanvas.getContext('2d');
+    evidenceContext.drawImage(canvas, sourceX, sourceY, cropWidth, cropHeight, 0, 0, evidenceCanvas.width, evidenceCanvas.height);
+    const link = document.createElement('a');
+    link.download = fileName;
+    link.href = evidenceCanvas.toDataURL('image/png');
+    link.click();
 }

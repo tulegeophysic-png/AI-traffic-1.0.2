@@ -32,6 +32,7 @@ let dividerDragMode = null;
 let dividerPreviousPoint = null;
 let trafficLightDragMode = null;
 let stopLineDragMode = null;
+let trafficLightPreviousPoint = null;
 let countingLineEnabled = true;
 let videoObjectUrl = null;
 
@@ -119,7 +120,7 @@ function setupOverlayControls() {
     modes.forEach(([mode, label]) => {
         const button = document.createElement('button');
         button.type = 'button';
-        button.innerText = label;
+        button.dataset.mode = mode;
         button.style.cssText = 'border:1px solid #facc15;background:#334155;color:#fff;padding:4px 7px;border-radius:4px;font-size:10px;font-weight:bold;cursor:pointer;';
         button.addEventListener('click', () => {
             if (mode === 'counting') {
@@ -133,6 +134,7 @@ function setupOverlayControls() {
                 overlayVisibility.trafficLight = true;
                 overlayVisibility.stopLine = true;
             }
+            updateModeButtons();
             updateOverlayButtons();
             drawScene(latestDetections);
         });
@@ -140,6 +142,16 @@ function setupOverlayControls() {
     });
     host.parentElement.insertBefore(toolbar, host.nextSibling);
     updateOverlayButtons();
+    updateModeButtons();
+}
+
+function updateModeButtons() {
+    document.querySelectorAll('#overlay-controls [data-mode]').forEach(button => {
+        const redLightMode = overlayVisibility.trafficLight && overlayVisibility.stopLine;
+        const active = button.dataset.mode === 'redLight' ? redLightMode : !redLightMode;
+        button.innerText = `${active ? 'ON' : 'OFF'} ${button.dataset.mode === 'redLight' ? 'Chế độ đèn đỏ' : 'Chế độ đếm xe'}`;
+        button.style.background = active ? '#15803d' : '#475569';
+    });
 }
 
 function updateOverlayButtons() {
@@ -193,6 +205,7 @@ function setupLineDragging() {
         const stopEnd = getDividerScreenPoint(stopLineConfig.end);
         if (overlayVisibility.trafficLight && trafficLightPoint.x >= trafficLightBounds.left && trafficLightPoint.x <= trafficLightBounds.right && trafficLightPoint.y >= trafficLightBounds.top && trafficLightPoint.y <= trafficLightBounds.bottom) {
             trafficLightDragMode = 'roi';
+            trafficLightPreviousPoint = { x: trafficLightConfig.x, y: trafficLightConfig.y };
             canvas.setPointerCapture(event.pointerId);
             return;
         }
@@ -241,8 +254,16 @@ function setupLineDragging() {
         if (trafficLightDragMode || stopLineDragMode) {
             const point = getCanvasPoint(event);
             if (trafficLightDragMode === 'roi') {
-                trafficLightConfig.x = Math.max(0, Math.min(1 - trafficLightConfig.width, point.x / canvas.width - trafficLightConfig.width / 2));
-                trafficLightConfig.y = Math.max(0, Math.min(1 - trafficLightConfig.height, point.y / canvas.height - trafficLightConfig.height / 2));
+                const nextX = Math.max(0, Math.min(1 - trafficLightConfig.width, point.x / canvas.width - trafficLightConfig.width / 2));
+                const nextY = Math.max(0, Math.min(1 - trafficLightConfig.height, point.y / canvas.height - trafficLightConfig.height / 2));
+                const deltaX = nextX - trafficLightConfig.x;
+                const deltaY = nextY - trafficLightConfig.y;
+                trafficLightConfig.x = nextX;
+                trafficLightConfig.y = nextY;
+                stopLineConfig.start.x = Math.max(0, Math.min(1, stopLineConfig.start.x + deltaX));
+                stopLineConfig.start.y = Math.max(0, Math.min(1, stopLineConfig.start.y + deltaY));
+                stopLineConfig.end.x = Math.max(0, Math.min(1, stopLineConfig.end.x + deltaX));
+                stopLineConfig.end.y = Math.max(0, Math.min(1, stopLineConfig.end.y + deltaY));
             } else if (stopLineDragMode === 'start') {
                 stopLineConfig.start = { x: point.x / canvas.width, y: point.y / canvas.height };
             } else if (stopLineDragMode === 'end') {
@@ -282,8 +303,8 @@ function setupLineDragging() {
         lineConfig.positionRatio = (countLineConfig.start.y + countLineConfig.end.y) / 2;
         drawScene(latestDetections);
     });
-    window.addEventListener('pointerup', () => { draggingLine = false; dividerDragMode = null; trafficLightDragMode = null; stopLineDragMode = null; dividerPreviousPoint = null; });
-    window.addEventListener('pointercancel', () => { draggingLine = false; dividerDragMode = null; trafficLightDragMode = null; stopLineDragMode = null; dividerPreviousPoint = null; });
+    window.addEventListener('pointerup', () => { draggingLine = false; dividerDragMode = null; trafficLightDragMode = null; stopLineDragMode = null; dividerPreviousPoint = null; trafficLightPreviousPoint = null; });
+    window.addEventListener('pointercancel', () => { draggingLine = false; dividerDragMode = null; trafficLightDragMode = null; stopLineDragMode = null; dividerPreviousPoint = null; trafficLightPreviousPoint = null; });
 }
 
 function getCanvasPoint(event) {
