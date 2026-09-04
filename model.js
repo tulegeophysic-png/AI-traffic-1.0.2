@@ -1,9 +1,9 @@
 let session = null;
 
 const classConfidenceThresholds = {
-    motorcycle: 0.10,
+    motorcycle: 0.05,
     car: 0.15,
-    bus: 0.25,
+    bus: 0.40,
     truck: 0.25
 };
 

@@ -83,16 +83,17 @@ export function matchAndCountVehicles(detections) {
             const previousFrontSideUp = oldData.frontSideUp || oldData.countLineSide;
             const crossedDown = previousCenterSide !== currentCenterSide || previousFrontSideDown !== currentFrontSideDown;
             const crossedUp = previousCenterSide !== currentCenterSide || previousFrontSideUp !== currentFrontSideUp;
+            const touchesCountingLine = boxTouchesCountingLine(x, y, width, height);
             const sweptDown = crossedDown;
             const sweptUp = crossedUp;
             let crossed = false;
 
             if (directionMode === 'both') {
-                crossed = crossedDown || crossedUp;
+                crossed = touchesCountingLine || crossedDown || crossedUp;
             } else if (directionMode === 'down') {
-                crossed = movedDown && (crossedDown || sweptDown);
+                crossed = movedDown && (touchesCountingLine || crossedDown || sweptDown);
             } else if (directionMode === 'up') {
-                crossed = movedUp && (crossedUp || sweptUp);
+                crossed = movedUp && (touchesCountingLine || crossedUp || sweptUp);
             }
 
             if (crossed) {
@@ -150,6 +151,16 @@ export function matchAndCountVehicles(detections) {
     });
 
     return activeVehicles;
+}
+
+function boxTouchesCountingLine(x, y, width, height) {
+    const cornerSides = [
+        getCountLineSide(x, y),
+        getCountLineSide(x + width, y),
+        getCountLineSide(x, y + height),
+        getCountLineSide(x + width, y + height)
+    ];
+    return Math.min(...cornerSides) <= 0 && Math.max(...cornerSides) >= 0;
 }
 
 function captureVehicleEvidence(bbox, fileName) {
