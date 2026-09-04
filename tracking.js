@@ -88,7 +88,7 @@ export function matchAndCountVehicles(detections) {
             let crossed = false;
 
             if (directionMode === 'both') {
-                crossed = (movedDown && (crossedDown || sweptDown)) || (movedUp && (crossedUp || sweptUp));
+                crossed = crossedDown || crossedUp;
             } else if (directionMode === 'down') {
                 crossed = movedDown && (crossedDown || sweptDown);
             } else if (directionMode === 'up') {
