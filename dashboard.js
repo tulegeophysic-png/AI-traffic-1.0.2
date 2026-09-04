@@ -2,6 +2,7 @@ import { countsLeft, countsRight, countsTotal } from './main.js';
 
 let chartInstance = null;
 let violationList = [];
+let currentLanguage = 'vi';
 
 export function initChart() {
     const chartCanvas = document.getElementById('trafficChart');
@@ -109,4 +110,40 @@ export function resetTrafficViolations() {
     violationList = [];
     const panel = document.getElementById('red-light-violations');
     if (panel) panel.remove();
+}
+
+export function setLanguage(language) {
+    currentLanguage = language === 'en' ? 'en' : 'vi';
+    const guide = document.getElementById('usage-guide');
+    if (guide) {
+        guide.innerHTML = currentLanguage === 'en'
+            ? '<b>Usage guide</b><br>1. Choose a video or connect a camera stream.<br>2. Select Counting mode and adjust the green lane divider and red counting line.<br>3. Select Red-light mode, place the dark-red traffic-light region around the signal and place the stop line across the road.<br>4. Press Start AI. Export CSV opens directly in Excel.'
+            : '<b>Hướng dẫn sử dụng</b><br>1. Chọn video hoặc kết nối camera stream.<br>2. Chọn chế độ đếm xe, chỉnh vạch phân làn xanh và vạch đếm đỏ.<br>3. Chọn chế độ đèn đỏ, đặt vùng đỏ đậm quanh đèn và vạch dừng ngang đường.<br>4. Nhấn Chạy AI. Nút Xuất Excel tạo file CSV mở được bằng Excel.';
+    }
+    document.querySelectorAll('[data-i18n]').forEach(element => {
+        const text = element.dataset[`i18n${currentLanguage === 'en' ? 'En' : 'Vi'}`];
+        if (text) element.innerText = text;
+    });
+}
+
+export function exportTrafficCsv() {
+    const rows = [
+        ['Traffic statistics', 'Value'],
+        ['Car left', countsLeft.car], ['Car right', countsRight.car], ['Car total', countsTotal.car],
+        ['Motorcycle left', countsLeft.motorcycle], ['Motorcycle right', countsRight.motorcycle], ['Motorcycle total', countsTotal.motorcycle],
+        ['Bus left', countsLeft.bus], ['Bus right', countsRight.bus], ['Bus total', countsTotal.bus],
+        ['Truck left', countsLeft.truck], ['Truck right', countsRight.truck], ['Truck total', countsTotal.truck],
+        ['Total left', countsLeft.total], ['Total right', countsRight.total], ['Total', countsTotal.total],
+        ['Chart - Car left', countsLeft.car], ['Chart - Car right', countsRight.car],
+        ['Chart - Motorcycle left', countsLeft.motorcycle], ['Chart - Motorcycle right', countsRight.motorcycle],
+        ['Chart - Bus left', countsLeft.bus], ['Chart - Bus right', countsRight.bus],
+        ['Chart - Truck left', countsLeft.truck], ['Chart - Truck right', countsRight.truck],
+        ['Export time', new Date().toLocaleString()]
+    ];
+    const csv = '\ufeff' + rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const link = document.createElement('a');
+    link.download = `traffic-report-${Date.now()}.csv`;
+    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    link.click();
+    URL.revokeObjectURL(link.href);
 }

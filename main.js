@@ -1,5 +1,5 @@
 import { loadModel, classConfidenceThresholds, session } from './model.js';
-import { initChart, setStatus, updateUIStats, resetTrafficViolations } from './dashboard.js';
+import { initChart, setStatus, updateUIStats, resetTrafficViolations, setLanguage, exportTrafficCsv } from './dashboard.js';
 import { drawScene, resetLinePosition } from './counting.js';
 import { resetTracking } from './tracking.js';
 import { captureFrame, startAI, stopAI } from './video.js';
@@ -87,12 +87,91 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLineDragging();
     setupVideoUpload();
     setupOverlayControls();
+    setupDashboardTools();
 
     initChart();
     loadModel(setStatus, () => {
         if (videoElement.src) document.getElementById('btn-start').disabled = false;
     });
 });
+
+function setupDashboardTools() {
+    const header = document.querySelector('header');
+    if (!header) return;
+    const tools = document.createElement('div');
+    tools.id = 'dashboard-tools';
+    tools.style.cssText = 'width:100%;max-width:1300px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:0 auto 8px;padding:5px;background:#111b38;border:1px solid #1e293b;border-radius:4px;font-size:11px;';
+    tools.innerHTML = `
+        <button id="lang-vi" data-i18n-vi="VI" data-i18n-en="VI">VI</button>
+        <button id="lang-en" data-i18n-vi="EN" data-i18n-en="EN">EN</button>
+        <button id="btn-guide" data-i18n-vi="Hướng dẫn" data-i18n-en="Guide">Hướng dẫn</button>
+        <button id="btn-export" data-i18n-vi="Xuất Excel" data-i18n-en="Export Excel">Xuất Excel</button>
+        <button id="btn-camera" data-i18n-vi="Wi-Fi Camera: OFF" data-i18n-en="Wi-Fi Camera: OFF">Wi-Fi Camera: OFF</button>
+        <input id="camera-url" placeholder="MJPEG/HLS/WebRTC camera URL" style="flex:1;min-width:180px;padding:4px;background:#0b132b;color:#fff;border:1px solid #334155;border-radius:3px;">
+        <span id="realtime-clock" style="margin-left:auto;color:#38bdf8;font-weight:bold;"></span>
+        <span id="realtime-location" style="color:#facc15;">Location: unavailable</span>`;
+    Array.from(tools.querySelectorAll('button')).forEach(button => { button.style.cssText = 'padding:4px 7px;border:1px solid #64748b;border-radius:3px;background:#334155;color:#fff;font-weight:bold;cursor:pointer;'; });
+    header.parentElement.insertBefore(tools, header.nextSibling);
+
+    document.getElementById('lang-vi').addEventListener('click', () => { currentLanguage = 'vi'; setLanguage('vi'); updateCameraButtonLabel(); });
+    document.getElementById('lang-en').addEventListener('click', () => { currentLanguage = 'en'; setLanguage('en'); updateCameraButtonLabel(); });
+    document.getElementById('btn-export').addEventListener('click', exportTrafficCsv);
+    document.getElementById('btn-guide').addEventListener('click', () => {
+        let guide = document.getElementById('usage-guide');
+        if (!guide) {
+            guide = document.createElement('div');
+            guide.id = 'usage-guide';
+            guide.style.cssText = 'width:100%;box-sizing:border-box;margin:0 auto 8px;padding:8px;background:#0f172a;border:1px solid #38bdf8;color:#f8fafc;border-radius:4px;font-size:11px;line-height:1.5;';
+            tools.parentElement.insertBefore(guide, tools.nextSibling);
+        }
+        guide.hidden = !guide.hidden;
+        setLanguage(currentLanguage);
+    });
+    document.getElementById('btn-camera').addEventListener('click', () => toggleCameraStream());
+    setInterval(updateRealtimeHeader, 1000);
+    updateRealtimeHeader();
+    setLanguage('vi');
+}
+
+let currentLanguage = 'vi';
+function toggleCameraStream() {
+    const button = document.getElementById('btn-camera');
+    const urlInput = document.getElementById('camera-url');
+    if (videoElement.dataset.cameraConnected === 'true') {
+        videoElement.pause();
+        videoElement.removeAttribute('src');
+        videoElement.load();
+        videoElement.dataset.cameraConnected = 'false';
+        updateCameraButtonLabel();
+        return;
+    }
+    if (!urlInput.value.trim()) {
+        setStatus('stopped', currentLanguage === 'en' ? 'ENTER CAMERA URL' : 'NHẬP URL CAMERA');
+        return;
+    }
+    videoElement.crossOrigin = 'anonymous';
+    videoElement.src = urlInput.value.trim();
+    videoElement.load();
+    videoElement.dataset.cameraConnected = 'true';
+    updateCameraButtonLabel();
+}
+
+function updateCameraButtonLabel() {
+    const button = document.getElementById('btn-camera');
+    if (!button) return;
+    const connected = videoElement.dataset.cameraConnected === 'true';
+    button.innerText = currentLanguage === 'en' ? `Wi-Fi Camera: ${connected ? 'ON' : 'OFF'}` : `Wi-Fi Camera: ${connected ? 'BẬT' : 'TẮT'}`;
+}
+
+function updateRealtimeHeader() {
+    const clock = document.getElementById('realtime-clock');
+    if (clock) clock.innerText = new Date().toLocaleString();
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(position => {
+        const location = document.getElementById('realtime-location');
+        if (location) location.innerText = `Location: ${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`;
+    }, () => {});
+}
 
 function setupOverlayControls() {
     const host = document.querySelector('.video-container');
