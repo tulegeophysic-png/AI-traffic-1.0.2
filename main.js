@@ -95,7 +95,7 @@ function setupOverlayControls() {
     if (!host) return;
     const toolbar = document.createElement('div');
     toolbar.id = 'overlay-controls';
-    toolbar.style.cssText = 'position:absolute;left:6px;bottom:6px;z-index:5;display:flex;flex-wrap:wrap;gap:4px;max-width:98%;';
+    toolbar.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;width:100%;box-sizing:border-box;margin-top:6px;padding:5px;background:#111b38;border:1px solid #38bdf8;border-radius:4px;';
     const controls = [
         ['countLine', 'Vạch đếm'],
         ['divider', 'Phân làn'],
@@ -137,7 +137,7 @@ function setupOverlayControls() {
         });
         toolbar.appendChild(button);
     });
-    host.appendChild(toolbar);
+    host.parentElement.insertBefore(toolbar, host.nextSibling);
     updateOverlayButtons();
 }
 

@@ -130,14 +130,16 @@ function drawTrafficLightTools() {
         ctx.fillStyle = 'rgba(14, 165, 233, 0.12)';
         ctx.fillRect(roiX, roiY, roiWidth, roiHeight);
     }
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 8;
-    ctx.setLineDash([12, 8]);
-    ctx.strokeRect(roiX, roiY, roiWidth, roiHeight);
     if (!overlayVisibility.trafficLight && !overlayVisibility.stopLine) return;
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 5;
-    if (overlayVisibility.trafficLight) ctx.strokeRect(roiX, roiY, roiWidth, roiHeight);
+    if (overlayVisibility.trafficLight) {
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 8;
+        ctx.setLineDash([12, 8]);
+        ctx.strokeRect(roiX, roiY, roiWidth, roiHeight);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(roiX, roiY, roiWidth, roiHeight);
+    }
     ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = 14;
     ctx.setLineDash([]);
