@@ -1,5 +1,5 @@
 import { calculateIoU } from './detection.js';
-import { canvas, lineConfig, recentVehicles, countsLeft, countsRight, countsTotal, getCountingLineEnabled, isLeftOfDivider, getStopLineSide, getCountLineSide, getTrafficLightState, getRedStartedAt } from './main.js';
+import { canvas, lineConfig, recentVehicles, countsLeft, countsRight, countsTotal, getCountingLineEnabled, isLeftOfDivider, getStopLineSide, getCountLineSide, getTrafficLightState, getRedStartedAt, isRedLightMode } from './main.js';
 import { recordTrafficViolation } from './dashboard.js';
 
 let uniqueIdCounter = 1;
@@ -100,7 +100,7 @@ export function matchAndCountVehicles(detections) {
         if (oldData && !oldData.stopLineCrossed && oldData.stopLineSide !== stopLineSide) {
             oldData.stopLineCrossed = true;
             const redStartedAt = getRedStartedAt();
-            if (getTrafficLightState() === 'red' && redStartedAt && nowTime >= redStartedAt && !oldData.violationRecorded) {
+            if (isRedLightMode() && getTrafficLightState() === 'red' && redStartedAt && nowTime >= redStartedAt && !oldData.violationRecorded) {
                 oldData.violationRecorded = true;
                 const evidenceName = `red-light-${assignedId}-${nowTime}.png`;
                 captureVehicleEvidence(detection.bbox, evidenceName);

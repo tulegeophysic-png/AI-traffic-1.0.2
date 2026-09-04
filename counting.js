@@ -164,7 +164,7 @@ function drawTrafficLightTools() {
     ctx.fillStyle = lightState === 'red' ? '#ef4444' : lightState === 'green' ? '#22c55e' : lightState === 'yellow' ? '#facc15' : '#f8fafc';
     if (overlayVisibility.trafficLight) ctx.fillText(`ĐÈN: ${lightState.toUpperCase()}`, roiX, roiY + roiHeight + 16);
     ctx.fillStyle = '#fb923c';
-    if (overlayVisibility.stopLine) ctx.fillText('VẠCH DỪNG', Math.min(canvas.width - 100, startX + 8), Math.max(16, startY - 8));
+    if (overlayVisibility.stopLine) ctx.fillText('VẠCH DỪNG - KÉO 2 ĐẦU', 15, Math.max(16, Math.min(startY, endY) - 8));
     ctx.fillStyle = '#22c55e';
     ctx.beginPath();
     if (overlayVisibility.stopLine) { ctx.arc(startX, startY, 12, 0, Math.PI * 2); ctx.arc(endX, endY, 12, 0, Math.PI * 2); }

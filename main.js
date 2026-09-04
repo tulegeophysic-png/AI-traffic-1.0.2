@@ -21,7 +21,7 @@ export const sideDividerConfig = {
     end: { x: 0.5, y: 0.98 }
 };
 export const trafficLightConfig = { x: 0.05, y: 0.05, width: 0.08, height: 0.16 };
-export const stopLineConfig = { start: { x: 0.05, y: 0.72 }, end: { x: 0.95, y: 0.72 } };
+export const stopLineConfig = { start: { x: 0, y: 0.72 }, end: { x: 1, y: 0.72 } };
 export const overlayVisibility = { countLine: true, divider: true, trafficLight: false, stopLine: false };
 export let latestDetections = [];
 
@@ -32,9 +32,10 @@ let dividerDragMode = null;
 let dividerPreviousPoint = null;
 let trafficLightDragMode = null;
 let stopLineDragMode = null;
-let trafficLightPreviousPoint = null;
+let activeOverlayMode = 'counting';
 let countingLineEnabled = true;
 let videoObjectUrl = null;
+let calibrationTimer = null;
 
 export const isRunning = () => running;
 export const setRunning = value => { running = value; };
@@ -44,6 +45,7 @@ export const setLatestDetections = value => { latestDetections = value; };
 export const getCountingLineEnabled = () => countingLineEnabled;
 export const getDraggingLine = () => draggingLine;
 export const getDividerDragMode = () => dividerDragMode;
+export const isRedLightMode = () => activeOverlayMode === 'redLight';
 export const getTrafficLightDragMode = () => trafficLightDragMode;
 export const getStopLineDragMode = () => stopLineDragMode;
 export const getTrafficLightConfig = () => trafficLightConfig;
@@ -124,11 +126,13 @@ function setupOverlayControls() {
         button.style.cssText = 'border:1px solid #facc15;background:#334155;color:#fff;padding:4px 7px;border-radius:4px;font-size:10px;font-weight:bold;cursor:pointer;';
         button.addEventListener('click', () => {
             if (mode === 'counting') {
+                activeOverlayMode = 'counting';
                 overlayVisibility.countLine = true;
                 overlayVisibility.divider = true;
                 overlayVisibility.trafficLight = false;
                 overlayVisibility.stopLine = false;
             } else {
+                activeOverlayMode = 'redLight';
                 overlayVisibility.countLine = false;
                 overlayVisibility.divider = false;
                 overlayVisibility.trafficLight = true;
@@ -147,7 +151,7 @@ function setupOverlayControls() {
 
 function updateModeButtons() {
     document.querySelectorAll('#overlay-controls [data-mode]').forEach(button => {
-        const redLightMode = overlayVisibility.trafficLight && overlayVisibility.stopLine;
+        const redLightMode = activeOverlayMode === 'redLight';
         const active = button.dataset.mode === 'redLight' ? redLightMode : !redLightMode;
         button.innerText = `${active ? 'ON' : 'OFF'} ${button.dataset.mode === 'redLight' ? 'Chế độ đèn đỏ' : 'Chế độ đếm xe'}`;
         button.style.background = active ? '#15803d' : '#475569';
@@ -205,7 +209,6 @@ function setupLineDragging() {
         const stopEnd = getDividerScreenPoint(stopLineConfig.end);
         if (overlayVisibility.trafficLight && trafficLightPoint.x >= trafficLightBounds.left && trafficLightPoint.x <= trafficLightBounds.right && trafficLightPoint.y >= trafficLightBounds.top && trafficLightPoint.y <= trafficLightBounds.bottom) {
             trafficLightDragMode = 'roi';
-            trafficLightPreviousPoint = { x: trafficLightConfig.x, y: trafficLightConfig.y };
             canvas.setPointerCapture(event.pointerId);
             return;
         }
@@ -216,6 +219,11 @@ function setupLineDragging() {
         }
         if (overlayVisibility.stopLine && distance(trafficLightPoint.x, trafficLightPoint.y, stopEnd.x, stopEnd.y) < 35) {
             stopLineDragMode = 'end';
+            canvas.setPointerCapture(event.pointerId);
+            return;
+        }
+        if (overlayVisibility.stopLine && distanceToSegment(trafficLightPoint.x, trafficLightPoint.y, stopStart.x, stopStart.y, stopEnd.x, stopEnd.y) < 28) {
+            stopLineDragMode = 'line';
             canvas.setPointerCapture(event.pointerId);
             return;
         }
@@ -239,13 +247,13 @@ function setupLineDragging() {
             return;
         }
 
-        if (overlayVisibility.countLine && distance(mouseX, mouseY, countStart.x, countStart.y) < 35) { draggingLine = 'start'; canvas.setPointerCapture(event.pointerId); return; }
-        if (overlayVisibility.countLine && distance(mouseX, mouseY, countEnd.x, countEnd.y) < 35) { draggingLine = 'end'; canvas.setPointerCapture(event.pointerId); return; }
+        if (overlayVisibility.countLine && distance(mouseX, mouseY, countStart.x, countStart.y) < 35) { draggingLine = 'countLine'; canvas.setPointerCapture(event.pointerId); return; }
+        if (overlayVisibility.countLine && distance(mouseX, mouseY, countEnd.x, countEnd.y) < 35) { draggingLine = 'countLine'; canvas.setPointerCapture(event.pointerId); return; }
 
         if (!countingLineEnabled) return;
         const lineY = canvas.height * lineConfig.positionRatio;
         if (Math.abs(mouseY - lineY) < 40 && overlayVisibility.countLine) {
-            draggingLine = 'line';
+            draggingLine = 'countLine';
             canvas.setPointerCapture(event.pointerId);
         }
     });
@@ -256,18 +264,17 @@ function setupLineDragging() {
             if (trafficLightDragMode === 'roi') {
                 const nextX = Math.max(0, Math.min(1 - trafficLightConfig.width, point.x / canvas.width - trafficLightConfig.width / 2));
                 const nextY = Math.max(0, Math.min(1 - trafficLightConfig.height, point.y / canvas.height - trafficLightConfig.height / 2));
-                const deltaX = nextX - trafficLightConfig.x;
-                const deltaY = nextY - trafficLightConfig.y;
                 trafficLightConfig.x = nextX;
                 trafficLightConfig.y = nextY;
-                stopLineConfig.start.x = Math.max(0, Math.min(1, stopLineConfig.start.x + deltaX));
-                stopLineConfig.start.y = Math.max(0, Math.min(1, stopLineConfig.start.y + deltaY));
-                stopLineConfig.end.x = Math.max(0, Math.min(1, stopLineConfig.end.x + deltaX));
-                stopLineConfig.end.y = Math.max(0, Math.min(1, stopLineConfig.end.y + deltaY));
             } else if (stopLineDragMode === 'start') {
-                stopLineConfig.start = { x: point.x / canvas.width, y: point.y / canvas.height };
+                stopLineConfig.start = { x: 0, y: Math.max(0, Math.min(1, point.y / canvas.height)) };
             } else if (stopLineDragMode === 'end') {
-                stopLineConfig.end = { x: point.x / canvas.width, y: point.y / canvas.height };
+                stopLineConfig.end = { x: 1, y: Math.max(0, Math.min(1, point.y / canvas.height)) };
+            } else if (stopLineDragMode === 'line') {
+                const lineY = Math.max(0, Math.min(1, point.y / canvas.height));
+                const deltaY = lineY - ((stopLineConfig.start.y + stopLineConfig.end.y) / 2);
+                stopLineConfig.start.y = Math.max(0, Math.min(1, stopLineConfig.start.y + deltaY));
+                stopLineConfig.end.y = Math.max(0, Math.min(1, stopLineConfig.end.y + deltaY));
             }
             drawScene(latestDetections);
             return;
@@ -297,14 +304,16 @@ function setupLineDragging() {
         if (!draggingLine || !countingLineEnabled) return;
         const rect = canvas.getBoundingClientRect();
         const point = { x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)), y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) };
-        if (draggingLine === 'start') countLineConfig.start = point;
-        else if (draggingLine === 'end') countLineConfig.end = point;
-        else { const deltaX = point.x - countLineConfig.end.x; const deltaY = point.y - countLineConfig.end.y; countLineConfig.start.x = Math.max(0, Math.min(1, countLineConfig.start.x + deltaX)); countLineConfig.end.x = point.x; countLineConfig.start.y = Math.max(0, Math.min(1, countLineConfig.start.y + deltaY)); countLineConfig.end.y = point.y; }
+        if (draggingLine === 'countLine') {
+            const lineY = Math.max(0, Math.min(1, point.y));
+            countLineConfig.start = { x: 0, y: lineY };
+            countLineConfig.end = { x: 1, y: lineY };
+        }
         lineConfig.positionRatio = (countLineConfig.start.y + countLineConfig.end.y) / 2;
         drawScene(latestDetections);
     });
-    window.addEventListener('pointerup', () => { draggingLine = false; dividerDragMode = null; trafficLightDragMode = null; stopLineDragMode = null; dividerPreviousPoint = null; trafficLightPreviousPoint = null; });
-    window.addEventListener('pointercancel', () => { draggingLine = false; dividerDragMode = null; trafficLightDragMode = null; stopLineDragMode = null; dividerPreviousPoint = null; trafficLightPreviousPoint = null; });
+    window.addEventListener('pointerup', () => { draggingLine = false; dividerDragMode = null; trafficLightDragMode = null; stopLineDragMode = null; dividerPreviousPoint = null; });
+    window.addEventListener('pointercancel', () => { draggingLine = false; dividerDragMode = null; trafficLightDragMode = null; stopLineDragMode = null; dividerPreviousPoint = null; });
 }
 
 function getCanvasPoint(event) {
@@ -327,6 +336,14 @@ function getDividerPointAtY(y) {
 
 function distance(firstX, firstY, secondX, secondY) {
     return Math.hypot(firstX - secondX, firstY - secondY);
+}
+
+function distanceToSegment(pointX, pointY, startX, startY, endX, endY) {
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    const lengthSquared = deltaX * deltaX + deltaY * deltaY;
+    const ratio = lengthSquared ? Math.max(0, Math.min(1, ((pointX - startX) * deltaX + (pointY - startY) * deltaY) / lengthSquared)) : 0;
+    return distance(pointX, pointY, startX + ratio * deltaX, startY + ratio * deltaY);
 }
 
 export function getDividerXAtY(y) {
@@ -365,18 +382,45 @@ function setupVideoUpload() {
         videoElement.src = videoObjectUrl;
         videoElement.load();
         videoElement.onloadedmetadata = () => {
+            videoElement.pause();
             canvas.width = videoElement.videoWidth;
             canvas.height = videoElement.videoHeight;
             inferenceCanvas.width = canvas.width;
             inferenceCanvas.height = canvas.height;
             ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
             drawScene([]);
+            showCalibrationPreview();
             if (session) {
                 document.getElementById('btn-start').disabled = false;
                 setStatus('ready', 'AI READY');
             }
         };
     });
+}
+
+function showCalibrationPreview() {
+    if (calibrationTimer) clearInterval(calibrationTimer);
+    const host = document.querySelector('.video-container');
+    if (!host) return;
+    let notice = document.getElementById('calibration-preview');
+    if (!notice) {
+        notice = document.createElement('div');
+        notice.id = 'calibration-preview';
+        notice.style.cssText = 'position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:6;padding:6px 10px;background:#0f172add;border:1px solid #facc15;border-radius:4px;color:#fff;font-size:11px;font-weight:bold;text-align:center;pointer-events:none;';
+        host.appendChild(notice);
+    }
+    const endTime = Date.now() + 3000;
+    const updateNotice = () => {
+        const remaining = Math.max(0, endTime - Date.now());
+        notice.innerText = `TẠM DỪNG - ĐIỀU CHỈNH VẠCH (${Math.ceil(remaining / 1000)}s)`;
+        if (remaining <= 0) {
+            clearInterval(calibrationTimer);
+            calibrationTimer = null;
+            notice.remove();
+        }
+    };
+    updateNotice();
+    calibrationTimer = setInterval(updateNotice, 100);
 }
 
 function resetSystemDataOnly() {
