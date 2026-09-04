@@ -34,7 +34,7 @@ export function matchAndCountVehicles(detections) {
                 const distance = Math.hypot(centerX - predictedX, centerY - predictedY);
                 const overlap = value.bbox ? calculateIoU(detection.bbox, value.bbox) : 0;
                 const speedAllowance = Math.hypot(value.vx || 0, value.vy || 0) * elapsedSeconds;
-                const classAllowance = detection.className === 'bus' ? 180 : detection.className === 'car' ? 150 : 120;
+                const classAllowance = detection.className === 'bus' ? 260 : detection.className === 'car' ? 150 : 120;
                 const classBaseDistance = detection.className === 'car' ? 150 : baseMatchDistance;
                 const maxMatchDistance = Math.max(classBaseDistance, speedAllowance + classAllowance);
                 const horizontalDistance = Math.abs(centerX - predictedX);
@@ -75,13 +75,14 @@ export function matchAndCountVehicles(detections) {
             const currentBottom = centerY + height / 2;
             const movedDown = centerY > oldData.cy;
             const movedUp = centerY < oldData.cy;
-            const currentCenterSide = getCountLineSide(centerX, centerY);
             const currentFrontSideDown = getCountLineSide(centerX, y + height);
             const currentFrontSideUp = getCountLineSide(centerX, y);
+            const previousCenterSide = oldData.countLineSide;
+            const currentCenterSide = getCountLineSide(centerX, centerY);
             const previousFrontSideDown = oldData.frontSideDown || oldData.countLineSide;
             const previousFrontSideUp = oldData.frontSideUp || oldData.countLineSide;
-            const crossedDown = previousFrontSideDown < 0 && currentFrontSideDown >= 0;
-            const crossedUp = previousFrontSideUp > 0 && currentFrontSideUp <= 0;
+            const crossedDown = previousCenterSide !== currentCenterSide || previousFrontSideDown !== currentFrontSideDown;
+            const crossedUp = previousCenterSide !== currentCenterSide || previousFrontSideUp !== currentFrontSideUp;
             const sweptDown = crossedDown;
             const sweptUp = crossedUp;
             let crossed = false;
