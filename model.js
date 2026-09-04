@@ -15,7 +15,12 @@ export async function loadModel(setStatus, onReady) {
     try {
         setStatus('ready', 'LOADING...');
         ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/";
-        session = await ort.InferenceSession.create('./yolov10n.onnx', { executionProviders: ['wasm'] });
+        ort.env.wasm.numThreads = 1;
+        ort.env.wasm.proxy = false;
+        const modelUrl = new URL('./yolov10n.onnx', import.meta.url).href;
+        const loadPromise = ort.InferenceSession.create(modelUrl, { executionProviders: ['wasm'] });
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Model loading timeout')), 45000));
+        session = await Promise.race([loadPromise, timeoutPromise]);
         setStatus('ready', 'AI READY');
         onReady();
     } catch (error) {
