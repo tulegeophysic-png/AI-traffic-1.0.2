@@ -34,8 +34,11 @@ export function matchAndCountVehicles(detections) {
                 const distance = Math.hypot(centerX - predictedX, centerY - predictedY);
                 const overlap = value.bbox ? calculateIoU(detection.bbox, value.bbox) : 0;
                 const speedAllowance = Math.hypot(value.vx || 0, value.vy || 0) * elapsedSeconds;
-                const maxMatchDistance = Math.max(baseMatchDistance, speedAllowance + 120);
-                if (overlap >= 0.05 || distance <= maxMatchDistance) {
+                const classAllowance = detection.className === 'bus' ? 180 : detection.className === 'car' ? 90 : 120;
+                const classBaseDistance = detection.className === 'car' ? 90 : baseMatchDistance;
+                const maxMatchDistance = Math.max(classBaseDistance, speedAllowance + classAllowance);
+                const minimumOverlap = detection.className === 'car' ? 0.12 : 0.05;
+                if (overlap >= minimumOverlap || distance <= maxMatchDistance) {
                     candidateMatches.push({ detectionIndex, id, score: overlap * 1000 - distance });
                 }
             }
