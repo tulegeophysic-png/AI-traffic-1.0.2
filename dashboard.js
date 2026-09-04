@@ -114,6 +114,7 @@ export function resetTrafficViolations() {
 
 export function setLanguage(language) {
     currentLanguage = language === 'en' ? 'en' : 'vi';
+    document.documentElement.lang = currentLanguage;
     const guide = document.getElementById('usage-guide');
     if (guide) {
         guide.innerHTML = currentLanguage === 'en'
@@ -123,6 +124,49 @@ export function setLanguage(language) {
     document.querySelectorAll('[data-i18n]').forEach(element => {
         const text = element.dataset[`i18n${currentLanguage === 'en' ? 'En' : 'Vi'}`];
         if (text) element.innerText = text;
+    });
+    translateDashboardText(currentLanguage);
+}
+
+function translateDashboardText(language) {
+    const translations = language === 'en' ? {
+        'Hệ Thống Giám Sát & Đếm Phương Tiện Giao Thông AI (YOLOv10)': 'AI Traffic Monitoring & Vehicle Counting (YOLOv10)',
+        'Trạng thái:': 'Status:', 'Chạy AI': 'Start AI', 'Dừng lại': 'Stop', 'Reset Thống Kê': 'Reset Statistics',
+        'Chụp Khung Hình': 'Capture Frame', 'Tinh Chỉnh Mức Nhận Diện (Confidence Threshold) Đề Xuất:': 'Detection Confidence Thresholds:',
+        'Hướng đếm phương tiện:': 'Counting direction:', 'Đếm Cả 2 Chiều (Lên & Xuống)': 'Both directions (Up & Down)',
+        'Chỉ từ Trên xuống Dưới': 'Top to bottom only', 'Chỉ từ Dưới lên Trên': 'Bottom to top only',
+        'Vạch: ON': 'Line: ON', 'Vạch: OFF': 'Line: OFF', 'Reset Vạch Đếm': 'Reset Counting Line',
+        'Đồng hồ hệ thống:': 'System clock:', 'Bảng Thống Kê Phương Tiện': 'Vehicle Statistics',
+        'Mật độ giao thông:': 'Traffic density:', 'Loại xe': 'Vehicle type', 'Trái': 'Left', 'Phải': 'Right',
+        'TỔNG CỘNG': 'TOTAL', 'Biểu Đồ Phân Bố': 'Distribution Chart', 'Thông Tin Phân Tích & Hệ Thống': 'Analysis & System Information',
+        'Trạng thái Tracking:': 'Tracking status:', 'Độ phân giải AI:': 'AI resolution:',
+        'Confidence Threshold hoạt động chuẩn theo slider chỉnh tay': 'Confidence thresholds follow the sliders',
+        'Vạch đếm': 'Counting line', 'Phân làn': 'Lane divider', 'Vùng đèn': 'Traffic-light region', 'Vạch dừng': 'Stop line',
+        'Chế độ đếm xe': 'Vehicle counting mode', 'Chế độ đèn đỏ': 'Red-light mode', 'ON': 'ON', 'OFF': 'OFF',
+        'Vạch đếm phương tiện': 'Vehicle counting line', 'KÉO 2 ĐẦU': 'DRAG BOTH ENDS',
+        'TRAFFIC NORMAL': 'TRAFFIC NORMAL', 'TRAFFIC CONGESTION WARNING': 'TRAFFIC CONGESTION WARNING'
+    } : {
+        'AI Traffic Monitoring & Vehicle Counting (YOLOv10)': 'Hệ Thống Giám Sát & Đếm Phương Tiện Giao Thông AI (YOLOv10)',
+        'Status:': 'Trạng thái:', 'Start AI': 'Chạy AI', 'Stop': 'Dừng lại', 'Reset Statistics': 'Reset Thống Kê',
+        'Capture Frame': 'Chụp Khung Hình', 'Detection Confidence Thresholds:': 'Tinh Chỉnh Mức Nhận Diện (Confidence Threshold) Đề Xuất:',
+        'Counting direction:': 'Hướng đếm phương tiện:', 'Both directions (Up & Down)': 'Đếm Cả 2 Chiều (Lên & Xuống)',
+        'Top to bottom only': 'Chỉ từ Trên xuống Dưới', 'Bottom to top only': 'Chỉ từ Dưới lên Trên',
+        'Line: ON': 'Vạch: ON', 'Line: OFF': 'Vạch: OFF', 'Reset Counting Line': 'Reset Vạch Đếm',
+        'System clock:': 'Đồng hồ hệ thống:', 'Vehicle Statistics': 'Bảng Thống Kê Phương Tiện',
+        'Traffic density:': 'Mật độ giao thông:', 'Vehicle type': 'Loại xe', 'Left': 'Trái', 'Right': 'Phải',
+        'TOTAL': 'TỔNG CỘNG', 'Distribution Chart': 'Biểu Đồ Phân Bố', 'Analysis & System Information': 'Thông Tin Phân Tích & Hệ Thống',
+        'Tracking status:': 'Trạng thái Tracking:', 'AI resolution:': 'Độ phân giải AI:',
+        'Confidence thresholds follow the sliders': 'Confidence Threshold hoạt động chuẩn theo slider chỉnh tay',
+        'Counting line': 'Vạch đếm', 'Lane divider': 'Phân làn', 'Traffic-light region': 'Vùng đèn', 'Stop line': 'Vạch dừng',
+        'Vehicle counting mode': 'Chế độ đếm xe', 'Red-light mode': 'Chế độ đèn đỏ', 'Vehicle counting line': 'Vạch đếm phương tiện', 'DRAG BOTH ENDS': 'KÉO 2 ĐẦU'
+    };
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    textNodes.forEach(node => {
+        let text = node.nodeValue;
+        Object.entries(translations).forEach(([from, to]) => { text = text.replaceAll(from, to); });
+        node.nodeValue = text;
     });
 }
 

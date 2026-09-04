@@ -102,19 +102,20 @@ function setupDashboardTools() {
     tools.id = 'dashboard-tools';
     tools.style.cssText = 'width:100%;max-width:1300px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:0 auto 8px;padding:5px;background:#111b38;border:1px solid #1e293b;border-radius:4px;font-size:11px;';
     tools.innerHTML = `
-        <button id="lang-vi" data-i18n-vi="VI" data-i18n-en="VI">VI</button>
-        <button id="lang-en" data-i18n-vi="EN" data-i18n-en="EN">EN</button>
+        <button id="lang-vi">VI</button>
+        <button id="lang-en">EN</button>
         <button id="btn-guide" data-i18n-vi="Hướng dẫn" data-i18n-en="Guide">Hướng dẫn</button>
         <button id="btn-export" data-i18n-vi="Xuất Excel" data-i18n-en="Export Excel">Xuất Excel</button>
-        <button id="btn-camera" data-i18n-vi="Wi-Fi Camera: OFF" data-i18n-en="Wi-Fi Camera: OFF">Wi-Fi Camera: OFF</button>
-        <input id="camera-url" placeholder="MJPEG/HLS/WebRTC camera URL" style="flex:1;min-width:180px;padding:4px;background:#0b132b;color:#fff;border:1px solid #334155;border-radius:3px;">
+        <button id="btn-wifi" title="Wi-Fi" aria-label="Wi-Fi" style="font-size:16px;padding:2px 8px;">&#128246;</button>
+        <button id="btn-camera" data-i18n-vi="Kết nối Camera" data-i18n-en="Connect Camera">Kết nối Camera</button>
+        <input id="camera-url" data-placeholder-vi="URL camera MJPEG/HLS/WebRTC" data-placeholder-en="MJPEG/HLS/WebRTC camera URL" placeholder="URL camera MJPEG/HLS/WebRTC" style="flex:1;min-width:180px;padding:4px;background:#0b132b;color:#fff;border:1px solid #334155;border-radius:3px;">
         <span id="realtime-clock" style="margin-left:auto;color:#38bdf8;font-weight:bold;"></span>
         <span id="realtime-location" style="color:#facc15;">Location: unavailable</span>`;
     Array.from(tools.querySelectorAll('button')).forEach(button => { button.style.cssText = 'padding:4px 7px;border:1px solid #64748b;border-radius:3px;background:#334155;color:#fff;font-weight:bold;cursor:pointer;'; });
     header.parentElement.insertBefore(tools, header.nextSibling);
 
-    document.getElementById('lang-vi').addEventListener('click', () => { currentLanguage = 'vi'; setLanguage('vi'); updateCameraButtonLabel(); });
-    document.getElementById('lang-en').addEventListener('click', () => { currentLanguage = 'en'; setLanguage('en'); updateCameraButtonLabel(); });
+    document.getElementById('lang-vi').addEventListener('click', () => { currentLanguage = 'vi'; setLanguage('vi'); updateDashboardLanguage(); });
+    document.getElementById('lang-en').addEventListener('click', () => { currentLanguage = 'en'; setLanguage('en'); updateDashboardLanguage(); });
     document.getElementById('btn-export').addEventListener('click', exportTrafficCsv);
     document.getElementById('btn-guide').addEventListener('click', () => {
         let guide = document.getElementById('usage-guide');
@@ -128,9 +129,11 @@ function setupDashboardTools() {
         setLanguage(currentLanguage);
     });
     document.getElementById('btn-camera').addEventListener('click', () => toggleCameraStream());
+    document.getElementById('btn-wifi').addEventListener('click', () => toggleWifiIndicator());
     setInterval(updateRealtimeHeader, 1000);
     updateRealtimeHeader();
     setLanguage('vi');
+    updateDashboardLanguage();
 }
 
 let currentLanguage = 'vi';
@@ -159,8 +162,28 @@ function toggleCameraStream() {
 function updateCameraButtonLabel() {
     const button = document.getElementById('btn-camera');
     if (!button) return;
-    const connected = videoElement.dataset.cameraConnected === 'true';
-    button.innerText = currentLanguage === 'en' ? `Wi-Fi Camera: ${connected ? 'ON' : 'OFF'}` : `Wi-Fi Camera: ${connected ? 'BẬT' : 'TẮT'}`;
+    button.innerText = currentLanguage === 'en' ? 'Connect Camera' : 'Kết nối Camera';
+}
+
+function updateDashboardLanguage() {
+    const cameraUrl = document.getElementById('camera-url');
+    if (cameraUrl) cameraUrl.placeholder = cameraUrl.dataset[`placeholder${currentLanguage === 'en' ? 'En' : 'Vi'}`];
+    updateCameraButtonLabel();
+    const wifiButton = document.getElementById('btn-wifi');
+    if (wifiButton) wifiButton.title = currentLanguage === 'en' ? 'Wi-Fi status' : 'Trạng thái Wi-Fi';
+    const location = document.getElementById('realtime-location');
+    if (location && location.innerText.includes('unavailable')) location.innerText = currentLanguage === 'en' ? 'Location: unavailable' : 'Vị trí: chưa có';
+}
+
+function toggleWifiIndicator() {
+    const button = document.getElementById('btn-wifi');
+    if (!button) return;
+    const enabled = button.dataset.enabled !== 'true';
+    button.dataset.enabled = String(enabled);
+    button.style.background = enabled ? '#16a34a' : '#475569';
+    button.title = enabled
+        ? (currentLanguage === 'en' ? 'Wi-Fi enabled' : 'Wi-Fi đang bật')
+        : (currentLanguage === 'en' ? 'Wi-Fi disabled' : 'Wi-Fi đang tắt');
 }
 
 function updateRealtimeHeader() {
