@@ -42,7 +42,14 @@ export function processFrame() {
 }
 
 export async function startAI() {
-    if (!videoElement.src || !session) return;
+    if (!videoElement.src) {
+        setStatus('stopped', 'CHƯA CHỌN VIDEO');
+        return;
+    }
+    if (!session) {
+        setStatus('stopped', 'MODEL CHƯA SẴN SÀNG');
+        return;
+    }
     try {
         await videoElement.play();
     } catch (error) {

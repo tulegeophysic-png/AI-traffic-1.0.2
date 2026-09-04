@@ -482,7 +482,6 @@ function setupVideoUpload() {
         if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
         videoObjectUrl = URL.createObjectURL(file);
         videoElement.src = videoObjectUrl;
-        videoElement.load();
         videoElement.onloadedmetadata = () => {
             videoElement.pause();
             canvas.width = videoElement.videoWidth;
@@ -497,6 +496,12 @@ function setupVideoUpload() {
                 setStatus('ready', 'AI READY');
             }
         };
+        videoElement.onerror = () => {
+            console.error('Không thể tải video:', videoElement.error);
+            setStatus('stopped', 'VIDEO ERROR');
+            document.getElementById('btn-start').disabled = true;
+        };
+        videoElement.load();
     });
 }
 
