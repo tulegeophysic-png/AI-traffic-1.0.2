@@ -14,7 +14,7 @@ export { session, classConfidenceThresholds, classMap };
 export async function loadModel(setStatus, onReady) {
     try {
         setStatus('ready', 'LOADING...');
-        ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/";
+        ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
         ort.env.wasm.numThreads = 1;
         ort.env.wasm.proxy = false;
         const modelUrl = new URL('./yolov10n.onnx', import.meta.url).href;
