@@ -18,7 +18,10 @@ export async function loadModel(setStatus, onReady) {
         ort.env.wasm.numThreads = 1;
         ort.env.wasm.proxy = false;
         const modelUrl = new URL('./yolov10n.onnx', import.meta.url).href;
-        const loadPromise = ort.InferenceSession.create(modelUrl, { executionProviders: ['wasm'] });
+        const modelResponse = await fetch(`${modelUrl}?v=20260905`, { cache: 'no-store' });
+        if (!modelResponse.ok) throw new Error(`Model HTTP ${modelResponse.status}`);
+        const modelBuffer = await modelResponse.arrayBuffer();
+        const loadPromise = ort.InferenceSession.create(modelBuffer, { executionProviders: ['wasm'] });
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Model loading timeout')), 45000));
         session = await Promise.race([loadPromise, timeoutPromise]);
         setStatus('ready', 'AI READY');
