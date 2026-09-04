@@ -1,7 +1,7 @@
-import { canvas, ctx, inferenceCanvas, lineConfig, latestDetections, sideDividerConfig, trafficLightConfig, stopLineConfig, getCountingLineEnabled, getDraggingLine, getDividerDragMode, getTrafficLightDragMode, getStopLineDragMode, getTrafficLightState, setTrafficLightState } from './main.js';
+import { canvas, ctx, inferenceCanvas, lineConfig, latestDetections, sideDividerConfig, trafficLightConfig, stopLineConfig, overlayVisibility, getCountingLineEnabled, getDraggingLine, getDividerDragMode, getTrafficLightDragMode, getStopLineDragMode, getTrafficLightState, setTrafficLightState } from './main.js';
 
 export function drawScene(vehicles) {
-    if (getCountingLineEnabled()) {
+    if (overlayVisibility.countLine && getCountingLineEnabled()) {
         const lineY = lineConfig.positionRatio * canvas.height;
         ctx.strokeStyle = getDraggingLine() ? '#38bdf8' : '#ef4444';
         ctx.lineWidth = 3;
@@ -31,8 +31,8 @@ export function drawScene(vehicles) {
         });
     }
 
-    drawSideDivider();
-    drawTrafficLightTools();
+    if (overlayVisibility.divider) drawSideDivider();
+    if (overlayVisibility.trafficLight || overlayVisibility.stopLine) drawTrafficLightTools();
 }
 
 export function updateTrafficLightState() {
@@ -126,30 +126,44 @@ function drawTrafficLightTools() {
     const endX = stopLineConfig.end.x * canvas.width;
     const endY = stopLineConfig.end.y * canvas.height;
     ctx.save();
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([8, 6]);
-    ctx.strokeRect(roiX, roiY, roiWidth, roiHeight);
-    ctx.strokeStyle = '#fb923c';
+    if (overlayVisibility.trafficLight) {
+        ctx.fillStyle = 'rgba(14, 165, 233, 0.12)';
+        ctx.fillRect(roiX, roiY, roiWidth, roiHeight);
+    }
+    ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
+    ctx.setLineDash([12, 8]);
+    ctx.strokeRect(roiX, roiY, roiWidth, roiHeight);
+    if (!overlayVisibility.trafficLight && !overlayVisibility.stopLine) return;
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 5;
+    if (overlayVisibility.trafficLight) ctx.strokeRect(roiX, roiY, roiWidth, roiHeight);
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 14;
     ctx.setLineDash([]);
+    ctx.beginPath();
+    if (overlayVisibility.stopLine) { ctx.moveTo(startX, startY); ctx.lineTo(endX, endY); ctx.stroke(); }
+    ctx.strokeStyle = '#fb923c';
+    ctx.lineWidth = 9;
+    ctx.beginPath();
+    if (overlayVisibility.stopLine) { ctx.moveTo(startX, startY); ctx.lineTo(endX, endY); ctx.stroke(); }
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 12px Segoe UI';
-    ctx.fillText('VÙNG ĐÈN', roiX, Math.max(14, roiY - 6));
+    if (overlayVisibility.trafficLight) ctx.fillText('VÙNG ĐÈN', roiX, Math.max(14, roiY - 6));
     const lightState = getTrafficLightState();
     ctx.fillStyle = lightState === 'red' ? '#ef4444' : lightState === 'green' ? '#22c55e' : lightState === 'yellow' ? '#facc15' : '#f8fafc';
-    ctx.fillText(`ĐÈN: ${lightState.toUpperCase()}`, roiX, roiY + roiHeight + 16);
+    if (overlayVisibility.trafficLight) ctx.fillText(`ĐÈN: ${lightState.toUpperCase()}`, roiX, roiY + roiHeight + 16);
     ctx.fillStyle = '#fb923c';
-    ctx.fillText('VẠCH DỪNG', Math.min(canvas.width - 100, startX + 8), Math.max(16, startY - 8));
+    if (overlayVisibility.stopLine) ctx.fillText('VẠCH DỪNG', Math.min(canvas.width - 100, startX + 8), Math.max(16, startY - 8));
     ctx.fillStyle = '#22c55e';
     ctx.beginPath();
-    ctx.arc(startX, startY, 12, 0, Math.PI * 2);
-    ctx.arc(endX, endY, 12, 0, Math.PI * 2);
+    if (overlayVisibility.stopLine) { ctx.arc(startX, startY, 12, 0, Math.PI * 2); ctx.arc(endX, endY, 12, 0, Math.PI * 2); }
     ctx.fill();
+    if (overlayVisibility.trafficLight) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(roiX - 8, roiY - 8, 16, 16);
+        ctx.fillRect(roiX + roiWidth - 8, roiY + roiHeight - 8, 16, 16);
+    }
     if (getTrafficLightDragMode() || getStopLineDragMode()) {
         ctx.fillStyle = '#ffffff';
         ctx.fillText('KÉO ĐỂ ĐIỀU CHỈNH', Math.min(canvas.width - 170, roiX + roiWidth + 10), roiY + 16);

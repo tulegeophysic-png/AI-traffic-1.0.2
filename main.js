@@ -21,6 +21,7 @@ export const sideDividerConfig = {
 };
 export const trafficLightConfig = { x: 0.05, y: 0.05, width: 0.08, height: 0.16 };
 export const stopLineConfig = { start: { x: 0.05, y: 0.72 }, end: { x: 0.95, y: 0.72 } };
+export const overlayVisibility = { countLine: true, divider: true, trafficLight: false, stopLine: false };
 export let latestDetections = [];
 
 let running = false;
@@ -81,12 +82,72 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSlider('conf-truck-slider', 'truck', 'conf-truck-val');
     setupLineDragging();
     setupVideoUpload();
+    setupOverlayControls();
 
     initChart();
     loadModel(setStatus, () => {
         if (videoElement.src) document.getElementById('btn-start').disabled = false;
     });
 });
+
+function setupOverlayControls() {
+    const host = document.querySelector('.video-container');
+    if (!host) return;
+    const toolbar = document.createElement('div');
+    toolbar.id = 'overlay-controls';
+    toolbar.style.cssText = 'position:absolute;left:6px;bottom:6px;z-index:5;display:flex;flex-wrap:wrap;gap:4px;max-width:98%;';
+    const controls = [
+        ['countLine', 'Vạch đếm'],
+        ['divider', 'Phân làn'],
+        ['trafficLight', 'Vùng đèn'],
+        ['stopLine', 'Vạch dừng']
+    ];
+    controls.forEach(([key, label]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.overlay = key;
+        button.style.cssText = 'border:1px solid #fff;background:#111827dd;color:#fff;padding:4px 7px;border-radius:4px;font-size:10px;font-weight:bold;cursor:pointer;';
+        button.addEventListener('click', () => {
+            overlayVisibility[key] = !overlayVisibility[key];
+            updateOverlayButtons();
+            drawScene(latestDetections);
+        });
+        toolbar.appendChild(button);
+    });
+    const modes = [['counting', 'Chế độ đếm xe'], ['redLight', 'Chế độ đèn đỏ']];
+    modes.forEach(([mode, label]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.innerText = label;
+        button.style.cssText = 'border:1px solid #facc15;background:#334155;color:#fff;padding:4px 7px;border-radius:4px;font-size:10px;font-weight:bold;cursor:pointer;';
+        button.addEventListener('click', () => {
+            if (mode === 'counting') {
+                overlayVisibility.countLine = true;
+                overlayVisibility.divider = true;
+                overlayVisibility.trafficLight = false;
+                overlayVisibility.stopLine = false;
+            } else {
+                overlayVisibility.countLine = false;
+                overlayVisibility.divider = false;
+                overlayVisibility.trafficLight = true;
+                overlayVisibility.stopLine = true;
+            }
+            updateOverlayButtons();
+            drawScene(latestDetections);
+        });
+        toolbar.appendChild(button);
+    });
+    host.appendChild(toolbar);
+    updateOverlayButtons();
+}
+
+function updateOverlayButtons() {
+    document.querySelectorAll('#overlay-controls [data-overlay]').forEach(button => {
+        const active = overlayVisibility[button.dataset.overlay];
+        button.innerText = `${active ? 'ON' : 'OFF'} ${button.dataset.overlay === 'countLine' ? 'Vạch đếm' : button.dataset.overlay === 'trafficLight' ? 'Vùng đèn' : button.dataset.overlay === 'stopLine' ? 'Vạch dừng' : 'Phân làn'}`;
+        button.style.background = active ? '#15803d' : '#475569';
+    });
+}
 
 function setupSlider(sliderId, vehicleKey, valueSpanId) {
     const slider = document.getElementById(sliderId);
