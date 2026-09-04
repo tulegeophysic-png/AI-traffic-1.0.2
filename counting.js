@@ -1,18 +1,26 @@
-import { canvas, ctx, inferenceCanvas, lineConfig, latestDetections, sideDividerConfig, trafficLightConfig, stopLineConfig, overlayVisibility, getCountingLineEnabled, getDraggingLine, getDividerDragMode, getTrafficLightDragMode, getStopLineDragMode, getTrafficLightState, setTrafficLightState } from './main.js';
+import { canvas, ctx, inferenceCanvas, lineConfig, countLineConfig, latestDetections, sideDividerConfig, trafficLightConfig, stopLineConfig, overlayVisibility, getCountingLineEnabled, getDraggingLine, getDividerDragMode, getTrafficLightDragMode, getStopLineDragMode, getTrafficLightState, setTrafficLightState } from './main.js';
 
 export function drawScene(vehicles) {
     if (overlayVisibility.countLine && getCountingLineEnabled()) {
-        const lineY = lineConfig.positionRatio * canvas.height;
+        const startX = countLineConfig.start.x * canvas.width;
+        const startY = countLineConfig.start.y * canvas.height;
+        const endX = countLineConfig.end.x * canvas.width;
+        const endY = countLineConfig.end.y * canvas.height;
         ctx.strokeStyle = getDraggingLine() ? '#38bdf8' : '#ef4444';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(0, lineY);
-        ctx.lineTo(canvas.width, lineY);
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
         ctx.stroke();
 
         ctx.fillStyle = getDraggingLine() ? '#38bdf8' : '#ef4444';
         ctx.font = 'bold 13px Segoe UI';
-        ctx.fillText('VẠCH ĐẾM PHƯƠNG TIỆN', 15, lineY - 8);
+        ctx.fillText('VẠCH ĐẾM PHƯƠNG TIỆN', Math.min(startX, endX) + 15, Math.min(startY, endY) - 8);
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.arc(startX, startY, 11, 0, Math.PI * 2);
+        ctx.arc(endX, endY, 11, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     if (vehicles) {
@@ -175,6 +183,8 @@ function drawTrafficLightTools() {
 
 export function resetLinePosition() {
     lineConfig.positionRatio = 0.35;
+    countLineConfig.start = { x: 0, y: 0.35 };
+    countLineConfig.end = { x: 1, y: 0.35 };
     drawScene(latestDetections);
 }
 

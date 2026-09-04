@@ -15,6 +15,7 @@ export const countsRight = { car: 0, motorcycle: 0, bus: 0, truck: 0, total: 0 }
 export const countsTotal = { car: 0, motorcycle: 0, bus: 0, truck: 0, total: 0 };
 export const recentVehicles = new Map();
 export const lineConfig = { positionRatio: 0.35 };
+export const countLineConfig = { start: { x: 0, y: 0.35 }, end: { x: 1, y: 0.35 } };
 export const sideDividerConfig = {
     start: { x: 0.5, y: 0.02 },
     end: { x: 0.5, y: 0.98 }
@@ -190,43 +191,48 @@ function setupLineDragging() {
         };
         const stopStart = getDividerScreenPoint(stopLineConfig.start);
         const stopEnd = getDividerScreenPoint(stopLineConfig.end);
-        if (trafficLightPoint.x >= trafficLightBounds.left && trafficLightPoint.x <= trafficLightBounds.right && trafficLightPoint.y >= trafficLightBounds.top && trafficLightPoint.y <= trafficLightBounds.bottom) {
+        if (overlayVisibility.trafficLight && trafficLightPoint.x >= trafficLightBounds.left && trafficLightPoint.x <= trafficLightBounds.right && trafficLightPoint.y >= trafficLightBounds.top && trafficLightPoint.y <= trafficLightBounds.bottom) {
             trafficLightDragMode = 'roi';
             canvas.setPointerCapture(event.pointerId);
             return;
         }
-        if (distance(trafficLightPoint.x, trafficLightPoint.y, stopStart.x, stopStart.y) < 35) {
+        if (overlayVisibility.stopLine && distance(trafficLightPoint.x, trafficLightPoint.y, stopStart.x, stopStart.y) < 35) {
             stopLineDragMode = 'start';
             canvas.setPointerCapture(event.pointerId);
             return;
         }
-        if (distance(trafficLightPoint.x, trafficLightPoint.y, stopEnd.x, stopEnd.y) < 35) {
+        if (overlayVisibility.stopLine && distance(trafficLightPoint.x, trafficLightPoint.y, stopEnd.x, stopEnd.y) < 35) {
             stopLineDragMode = 'end';
             canvas.setPointerCapture(event.pointerId);
             return;
         }
 
-        if (distance(mouseX, mouseY, startPoint.x, startPoint.y) < 35) {
+        const countStart = getCanvasLinePoint(countLineConfig.start);
+        const countEnd = getCanvasLinePoint(countLineConfig.end);
+        if (overlayVisibility.divider && distance(mouseX, mouseY, startPoint.x, startPoint.y) < 35) {
             dividerDragMode = 'start';
             canvas.setPointerCapture(event.pointerId);
             return;
         }
-        if (distance(mouseX, mouseY, endPoint.x, endPoint.y) < 35) {
+        if (overlayVisibility.divider && distance(mouseX, mouseY, endPoint.x, endPoint.y) < 35) {
             dividerDragMode = 'end';
             canvas.setPointerCapture(event.pointerId);
             return;
         }
-        if (distance(mouseX, mouseY, dividerPoint.x, dividerPoint.y) < 28) {
+        if (overlayVisibility.divider && distance(mouseX, mouseY, dividerPoint.x, dividerPoint.y) < 28) {
             dividerDragMode = 'line';
             dividerPreviousPoint = { x: mouseX / canvas.width, y: mouseY / canvas.height };
             canvas.setPointerCapture(event.pointerId);
             return;
         }
 
+        if (overlayVisibility.countLine && distance(mouseX, mouseY, countStart.x, countStart.y) < 35) { draggingLine = 'start'; canvas.setPointerCapture(event.pointerId); return; }
+        if (overlayVisibility.countLine && distance(mouseX, mouseY, countEnd.x, countEnd.y) < 35) { draggingLine = 'end'; canvas.setPointerCapture(event.pointerId); return; }
+
         if (!countingLineEnabled) return;
         const lineY = canvas.height * lineConfig.positionRatio;
-        if (Math.abs(mouseY - lineY) < 40) {
-            draggingLine = true;
+        if (Math.abs(mouseY - lineY) < 40 && overlayVisibility.countLine) {
+            draggingLine = 'line';
             canvas.setPointerCapture(event.pointerId);
         }
     });
@@ -269,9 +275,11 @@ function setupLineDragging() {
         }
         if (!draggingLine || !countingLineEnabled) return;
         const rect = canvas.getBoundingClientRect();
-        const scaleY = canvas.height / rect.height;
-        const mouseY = (event.clientY - rect.top) * scaleY;
-        lineConfig.positionRatio = Math.max(0.05, Math.min(0.95, mouseY / canvas.height));
+        const point = { x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)), y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) };
+        if (draggingLine === 'start') countLineConfig.start = point;
+        else if (draggingLine === 'end') countLineConfig.end = point;
+        else { const deltaX = point.x - countLineConfig.end.x; const deltaY = point.y - countLineConfig.end.y; countLineConfig.start.x = Math.max(0, Math.min(1, countLineConfig.start.x + deltaX)); countLineConfig.end.x = point.x; countLineConfig.start.y = Math.max(0, Math.min(1, countLineConfig.start.y + deltaY)); countLineConfig.end.y = point.y; }
+        lineConfig.positionRatio = (countLineConfig.start.y + countLineConfig.end.y) / 2;
         drawScene(latestDetections);
     });
     window.addEventListener('pointerup', () => { draggingLine = false; dividerDragMode = null; trafficLightDragMode = null; stopLineDragMode = null; dividerPreviousPoint = null; });
@@ -286,6 +294,8 @@ function getCanvasPoint(event) {
 function getDividerScreenPoint(point) {
     return { x: point.x * canvas.width, y: point.y * canvas.height };
 }
+
+function getCanvasLinePoint(point) { return { x: point.x * canvas.width, y: point.y * canvas.height }; }
 
 function getDividerPointAtY(y) {
     const start = getDividerScreenPoint(sideDividerConfig.start);
@@ -313,6 +323,12 @@ export function getStopLineSide(x, y) {
     const endY = stopLineConfig.end.y * canvas.height;
     const crossProduct = (endX - startX) * (y - startY) - (endY - startY) * (x - startX);
     return crossProduct >= 0 ? 1 : -1;
+}
+
+export function getCountLineSide(x, y) {
+    const startX = countLineConfig.start.x * canvas.width, startY = countLineConfig.start.y * canvas.height;
+    const endX = countLineConfig.end.x * canvas.width, endY = countLineConfig.end.y * canvas.height;
+    return (endX - startX) * (y - startY) - (endY - startY) * (x - startX) >= 0 ? 1 : -1;
 }
 
 function setupVideoUpload() {

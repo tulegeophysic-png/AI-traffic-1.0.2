@@ -1,5 +1,5 @@
 import { calculateIoU } from './detection.js';
-import { canvas, lineConfig, recentVehicles, countsLeft, countsRight, countsTotal, getCountingLineEnabled, isLeftOfDivider, getStopLineSide, getTrafficLightState, getRedStartedAt } from './main.js';
+import { canvas, lineConfig, recentVehicles, countsLeft, countsRight, countsTotal, getCountingLineEnabled, isLeftOfDivider, getStopLineSide, getCountLineSide, getTrafficLightState, getRedStartedAt } from './main.js';
 import { recordTrafficViolation } from './dashboard.js';
 
 let uniqueIdCounter = 1;
@@ -12,7 +12,6 @@ export function resetTracking() {
 export function matchAndCountVehicles(detections) {
     const activeVehicles = [];
     const directionMode = document.getElementById('counting-direction').value;
-    const lineY = lineConfig.positionRatio * canvas.height;
     const nowTime = Date.now();
 
     for (const [id, value] of recentVehicles.entries()) {
@@ -71,10 +70,11 @@ export function matchAndCountVehicles(detections) {
             const currentBottom = centerY + height / 2;
             const movedDown = centerY > oldData.cy;
             const movedUp = centerY < oldData.cy;
-            const crossedDown = (oldData.cy < lineY || oldData.wasAboveLine) && centerY >= lineY;
-            const crossedUp = (oldData.cy > lineY || oldData.wasBelowLine) && centerY <= lineY;
-            const sweptDown = previousBottom < lineY && currentBottom >= lineY;
-            const sweptUp = previousTop > lineY && currentTop <= lineY;
+            const currentCountSide = getCountLineSide(centerX, centerY);
+            const crossedDown = oldData.countLineSide < 0 && currentCountSide >= 0;
+            const crossedUp = oldData.countLineSide > 0 && currentCountSide <= 0;
+            const sweptDown = crossedDown;
+            const sweptUp = crossedUp;
             let crossed = false;
 
             if (directionMode === 'both') {
@@ -132,8 +132,7 @@ export function matchAndCountVehicles(detections) {
             stopLineSide: oldData?.stopLineSide || stopLineSide,
             stopLineCrossed: oldData ? oldData.stopLineCrossed : false,
             violationRecorded: oldData ? oldData.violationRecorded : false,
-            wasAboveLine: oldData ? (oldData.wasAboveLine || centerY < lineY) : centerY < lineY,
-            wasBelowLine: oldData ? (oldData.wasBelowLine || centerY > lineY) : centerY > lineY,
+            countLineSide: oldData?.countLineSide || getCountLineSide(centerX, centerY),
             time: nowTime,
             vx: Math.max(-1000, Math.min(1000, velocityX)),
             vy: Math.max(-1000, Math.min(1000, velocityY))
