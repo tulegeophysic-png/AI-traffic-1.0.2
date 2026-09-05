@@ -1,9 +1,9 @@
 let session = null;
 
 const classConfidenceThresholds = {
-    motorcycle: 0.05,
+    motorcycle: 0.10,
     car: 0.15,
-    bus: 0.40,
+    bus: 0.45,
     truck: 0.25
 };
 
@@ -14,16 +14,8 @@ export { session, classConfidenceThresholds, classMap };
 export async function loadModel(setStatus, onReady) {
     try {
         setStatus('ready', 'LOADING...');
-        ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
-        ort.env.wasm.numThreads = 1;
-        ort.env.wasm.proxy = false;
-        const modelUrl = new URL('./yolov10n.onnx', import.meta.url).href;
-        const modelResponse = await fetch(`${modelUrl}?v=20260905`, { cache: 'no-store' });
-        if (!modelResponse.ok) throw new Error(`Model HTTP ${modelResponse.status}`);
-        const modelBuffer = await modelResponse.arrayBuffer();
-        const loadPromise = ort.InferenceSession.create(modelBuffer, { executionProviders: ['wasm'] });
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Model loading timeout')), 45000));
-        session = await Promise.race([loadPromise, timeoutPromise]);
+        ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/";
+        session = await ort.InferenceSession.create('./yolov10n.onnx', { executionProviders: ['wasm'] });
         setStatus('ready', 'AI READY');
         onReady();
     } catch (error) {

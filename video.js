@@ -2,7 +2,7 @@ import { session } from './model.js';
 import { preprocessWithLetterbox, parseYolov10Output } from './model.js';
 import { canvas, ctx, inferenceCanvas, inferenceCtx, latestDetections, setLatestDetections, isInferencing, setInferencing, isRunning, setRunning } from './main.js';
 import { matchAndCountVehicles } from './tracking.js';
-import { drawScene, updateTrafficLightState } from './counting.js';
+import { drawScene } from './counting.js';
 import { updateUIStats, setStatus } from './dashboard.js';
 
 export function processFrame() {
@@ -15,8 +15,6 @@ export function processFrame() {
     const now = performance.now();
     updateFps(now);
     ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-    inferenceCtx.drawImage(videoElement, 0, 0, inferenceCanvas.width, inferenceCanvas.height);
-    updateTrafficLightState();
     drawScene(latestDetections);
 
     if (!isInferencing()) {
@@ -42,14 +40,7 @@ export function processFrame() {
 }
 
 export async function startAI() {
-    if (!videoElement.src) {
-        setStatus('stopped', 'CHƯA CHỌN VIDEO');
-        return;
-    }
-    if (!session) {
-        setStatus('stopped', 'MODEL CHƯA SẴN SÀNG');
-        return;
-    }
+    if (!videoElement.src || !session) return;
     try {
         await videoElement.play();
     } catch (error) {

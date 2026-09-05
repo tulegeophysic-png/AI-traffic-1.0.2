@@ -1,6 +1,5 @@
 import { calculateIoU } from './detection.js';
-import { canvas, lineConfig, recentVehicles, countsLeft, countsRight, countsTotal, getCountingLineEnabled, isLeftOfDivider, getStopLineSide, getCountLineSide, getTrafficLightState, getRedStartedAt, isRedLightMode } from './main.js';
-import { recordTrafficViolation } from './dashboard.js';
+import { canvas, lineConfig, recentVehicles, countsLeft, countsRight, countsTotal, getCountingLineEnabled, isLeftOfDivider } from './main.js';
 
 let uniqueIdCounter = 1;
 
@@ -12,6 +11,7 @@ export function resetTracking() {
 export function matchAndCountVehicles(detections) {
     const activeVehicles = [];
     const directionMode = document.getElementById('counting-direction').value;
+    const lineY = lineConfig.positionRatio * canvas.height;
     const nowTime = Date.now();
 
     for (const [id, value] of recentVehicles.entries()) {
@@ -34,13 +34,8 @@ export function matchAndCountVehicles(detections) {
                 const distance = Math.hypot(centerX - predictedX, centerY - predictedY);
                 const overlap = value.bbox ? calculateIoU(detection.bbox, value.bbox) : 0;
                 const speedAllowance = Math.hypot(value.vx || 0, value.vy || 0) * elapsedSeconds;
-                const classAllowance = detection.className === 'bus' ? 260 : detection.className === 'car' ? 150 : 120;
-                const classBaseDistance = detection.className === 'car' ? 150 : baseMatchDistance;
-                const maxMatchDistance = Math.max(classBaseDistance, speedAllowance + classAllowance);
-                const horizontalDistance = Math.abs(centerX - predictedX);
-                const horizontalGate = detection.className === 'car' ? Math.max(110, Math.abs(value.vx || 0) * elapsedSeconds + 80) : maxMatchDistance;
-                const minimumOverlap = detection.className === 'car' ? 0.12 : 0.05;
-                if (overlap >= minimumOverlap || (distance <= maxMatchDistance && horizontalDistance <= horizontalGate)) {
+                const maxMatchDistance = Math.max(baseMatchDistance, speedAllowance + 120);
+                if (overlap >= 0.05 || distance <= maxMatchDistance) {
                     candidateMatches.push({ detectionIndex, id, score: overlap * 1000 - distance });
                 }
             }
@@ -75,25 +70,18 @@ export function matchAndCountVehicles(detections) {
             const currentBottom = centerY + height / 2;
             const movedDown = centerY > oldData.cy;
             const movedUp = centerY < oldData.cy;
-            const currentFrontSideDown = getCountLineSide(centerX, y + height);
-            const currentFrontSideUp = getCountLineSide(centerX, y);
-            const previousCenterSide = oldData.countLineSide;
-            const currentCenterSide = getCountLineSide(centerX, centerY);
-            const previousFrontSideDown = oldData.frontSideDown || oldData.countLineSide;
-            const previousFrontSideUp = oldData.frontSideUp || oldData.countLineSide;
-            const crossedDown = previousCenterSide !== currentCenterSide || previousFrontSideDown !== currentFrontSideDown;
-            const crossedUp = previousCenterSide !== currentCenterSide || previousFrontSideUp !== currentFrontSideUp;
-            const touchesCountingLine = boxTouchesCountingLine(x, y, width, height);
-            const sweptDown = crossedDown;
-            const sweptUp = crossedUp;
+            const crossedDown = (oldData.cy < lineY || oldData.wasAboveLine) && centerY >= lineY;
+            const crossedUp = (oldData.cy > lineY || oldData.wasBelowLine) && centerY <= lineY;
+            const sweptDown = previousBottom < lineY && currentBottom >= lineY;
+            const sweptUp = previousTop > lineY && currentTop <= lineY;
             let crossed = false;
 
             if (directionMode === 'both') {
-                crossed = touchesCountingLine || crossedDown || crossedUp;
+                crossed = (movedDown && (crossedDown || sweptDown)) || (movedUp && (crossedUp || sweptUp));
             } else if (directionMode === 'down') {
-                crossed = movedDown && (touchesCountingLine || crossedDown || sweptDown);
+                crossed = movedDown && (crossedDown || sweptDown);
             } else if (directionMode === 'up') {
-                crossed = movedUp && (touchesCountingLine || crossedUp || sweptUp);
+                crossed = movedUp && (crossedUp || sweptUp);
             }
 
             if (crossed) {
@@ -104,18 +92,6 @@ export function matchAndCountVehicles(detections) {
                 sideCounts.total++;
                 countsTotal[detection.className]++;
                 countsTotal.total++;
-            }
-        }
-
-        const stopLineSide = getStopLineSide(centerX, centerY);
-        if (oldData && !oldData.stopLineCrossed && oldData.stopLineSide !== stopLineSide) {
-            oldData.stopLineCrossed = true;
-            const redStartedAt = getRedStartedAt();
-            if (isRedLightMode() && getTrafficLightState() === 'red' && redStartedAt && nowTime >= redStartedAt && !oldData.violationRecorded) {
-                oldData.violationRecorded = true;
-                const evidenceName = `red-light-${assignedId}-${nowTime}.png`;
-                captureVehicleEvidence(detection.bbox, evidenceName);
-                recordTrafficViolation({ id: assignedId, className: detection.className, evidenceName });
             }
         }
 
@@ -137,12 +113,8 @@ export function matchAndCountVehicles(detections) {
             leftSideVotes,
             rightSideVotes,
             side,
-            stopLineSide: oldData?.stopLineSide || stopLineSide,
-            stopLineCrossed: oldData ? oldData.stopLineCrossed : false,
-            violationRecorded: oldData ? oldData.violationRecorded : false,
-            countLineSide: oldData?.countLineSide || currentCenterSide,
-            frontSideDown: oldData?.frontSideDown || getCountLineSide(centerX, centerY + height / 2),
-            frontSideUp: oldData?.frontSideUp || getCountLineSide(centerX, centerY - height / 2),
+            wasAboveLine: oldData ? (oldData.wasAboveLine || centerY < lineY) : centerY < lineY,
+            wasBelowLine: oldData ? (oldData.wasBelowLine || centerY > lineY) : centerY > lineY,
             time: nowTime,
             vx: Math.max(-1000, Math.min(1000, velocityX)),
             vy: Math.max(-1000, Math.min(1000, velocityY))
@@ -151,36 +123,4 @@ export function matchAndCountVehicles(detections) {
     });
 
     return activeVehicles;
-}
-
-function boxTouchesCountingLine(x, y, width, height) {
-    const cornerSides = [
-        getCountLineSide(x, y),
-        getCountLineSide(x + width, y),
-        getCountLineSide(x, y + height),
-        getCountLineSide(x + width, y + height)
-    ];
-    return Math.min(...cornerSides) <= 0 && Math.max(...cornerSides) >= 0;
-}
-
-function captureVehicleEvidence(bbox, fileName) {
-    const [x, y, width, height] = bbox;
-    const marginX = Math.max(width * 0.45, 40);
-    const marginY = Math.max(height * 0.45, 40);
-    const sourceX = Math.max(0, x - marginX);
-    const sourceY = Math.max(0, y - marginY);
-    const sourceRight = Math.min(canvas.width, x + width + marginX);
-    const sourceBottom = Math.min(canvas.height, y + height + marginY);
-    const cropWidth = Math.max(1, sourceRight - sourceX);
-    const cropHeight = Math.max(1, sourceBottom - sourceY);
-    const evidenceCanvas = document.createElement('canvas');
-    const scale = Math.min(3, Math.max(1, 900 / cropWidth));
-    evidenceCanvas.width = Math.round(cropWidth * scale);
-    evidenceCanvas.height = Math.round(cropHeight * scale);
-    const evidenceContext = evidenceCanvas.getContext('2d');
-    evidenceContext.drawImage(canvas, sourceX, sourceY, cropWidth, cropHeight, 0, 0, evidenceCanvas.width, evidenceCanvas.height);
-    const link = document.createElement('a');
-    link.download = fileName;
-    link.href = evidenceCanvas.toDataURL('image/png');
-    link.click();
 }

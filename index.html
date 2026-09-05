@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ Thống Giám Sát & Đếm Phương Tiện Giao Thông AI (YOLOv10)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <style>
         :root {
             --bg-color: #0b132b;
@@ -180,20 +180,20 @@
                 </div>
                 
                 <div class="slider-group">
-                    <label>🏍️ Motorcycle (Xe máy - Khuyến nghị thấp để bắt xe nhỏ/xa): <span id="conf-moto-val" style="float: right; color: var(--accent-color); font-weight: bold;">0.05</span></label>
-                    <input type="range" id="conf-moto-slider" min="0.01" max="0.9" step="0.01" value="0.05">
+                    <label>🏍️ Motorcycle (Xe máy - Khuyến nghị thấp để bắt xe nhỏ/xa): <span id="conf-moto-val" style="float: right; color: var(--accent-color); font-weight: bold;">0.10</span></label>
+                    <input type="range" id="conf-moto-slider" min="0.01" max="0.9" step="0.01" value="0.10">
                 </div>
                 <div class="slider-group">
                     <label>🚗 Car (Ô tô - Khuyến nghị cân bằng): <span id="conf-car-val" style="float: right; color: var(--accent-color); font-weight: bold;">0.15</span></label>
                     <input type="range" id="conf-car-slider" min="0.05" max="0.9" step="0.01" value="0.15">
                 </div>
                 <div class="slider-group">
-                    <label>🚌 Bus (Xe khách - Khuyến nghị cân bằng): <span id="conf-bus-val" style="float: right; color: var(--accent-color); font-weight: bold;">0.40</span></label>
+                    <label>🚌 Bus (Xe khách - Khuyến nghị cao tránh nhầm ô tô): <span id="conf-bus-val" style="float: right; color: var(--accent-color); font-weight: bold;">0.40</span></label>
                     <input type="range" id="conf-bus-slider" min="0.05" max="0.9" step="0.01" value="0.40">
                 </div>
                 <div class="slider-group">
-                    <label>🚚 Truck (Xe tải - Khuyến nghị cân bằng): <span id="conf-truck-val" style="float: right; color: var(--accent-color); font-weight: bold;">0.25</span></label>
-                    <input type="range" id="conf-truck-slider" min="0.05" max="0.9" step="0.01" value="0.25">
+                    <label>🚚 Truck (Xe tải - Khuyến nghị cao nhất để lọc bỏ lỗi xa): <span id="conf-truck-val" style="float: right; color: var(--accent-color); font-weight: bold;">0.45</span></label>
+                    <input type="range" id="conf-truck-slider" min="0.05" max="0.9" step="0.01" value="0.45">
                 </div>
 
                 <!-- HƯỚNG ĐẾM & VẠCH -->
