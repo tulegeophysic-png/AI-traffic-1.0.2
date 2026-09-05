@@ -1,4 +1,4 @@
-import { loadModel, classConfidenceThresholds, session } from './model.js?v=20260905';
+import { loadModel, classConfidenceThresholds, session } from './model.js';
 import { initChart, setStatus, updateUIStats, resetTrafficViolations, setLanguage, exportTrafficCsv } from './dashboard.js';
 import { drawScene, resetLinePosition } from './counting.js';
 import { resetTracking } from './tracking.js';

@@ -7,6 +7,9 @@ let currentLanguage = 'vi';
 export function initChart() {
     const chartCanvas = document.getElementById('trafficChart');
     if (!chartCanvas) return;
+    if (chartInstance) chartInstance.destroy();
+    const existingChart = Chart.getChart(chartCanvas);
+    if (existingChart) existingChart.destroy();
     chartInstance = new Chart(chartCanvas.getContext('2d'), {
         type: 'bar',
         data: {
