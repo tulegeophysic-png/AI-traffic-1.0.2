@@ -76,23 +76,43 @@ export function matchAndCountVehicles(detections) {
             const sweptUp = previousTop > lineY && currentTop <= lineY;
             let crossed = false;
 
-            // KIỂM TRA ĐIỀU KIỆN ĐẾM THEO HƯỚNG ĐƯỢC CHỌN TRÊN GIAO DIỆN
+            // KIỂM TRA ĐIỀU KIỆN ĐẾM THEO HƯỚNG ĐƯỢC CHỌN TRÊN GIAO DIỆN[cite: 7]
             if (directionMode === 'both') {
                 crossed = (movedDown && (crossedDown || sweptDown)) || (movedUp && (crossedUp || sweptUp));
             } else if (directionMode === 'down') {
-                crossed = movedDown && (crossedDown || sweptDown); // Chỉ đếm khi đi từ trên xuống
+                crossed = movedDown && (crossedDown || sweptDown); 
             } else if (directionMode === 'up') {
-                crossed = movedUp && (crossedUp || sweptUp); // Chỉ đếm khi đi từ dưới lên
+                crossed = movedUp && (crossedUp || sweptUp); 
             }
 
             if (crossed) {
                 oldData.counted = true;
                 const isLeftSide = oldData.side === 'left' || oldData.leftSideVotes >= oldData.rightSideVotes;
-                const sideCounts = isLeftSide ? countsLeft : countsRight;
-                sideCounts[detection.className]++;
-                sideCounts.total++;
-                countsTotal[detection.className]++;
-                countsTotal.total++;
+                
+                // ÁNH XẠ HƯỚNG ĐẾM VỚI LÀN ĐƯỜNG:
+                // - 'down' (Từ trên xuống): Chỉ ghi nhận làn bên trái
+                // - 'up' (Từ dưới lên): Chỉ ghi nhận làn bên phải
+                // - 'both': Ghi nhận cả 2 bên
+                let allowCount = false;
+                let targetSideCounts = null;
+
+                if (directionMode === 'both') {
+                    allowCount = true;
+                    targetSideCounts = isLeftSide ? countsLeft : countsRight;
+                } else if (directionMode === 'down' && isLeftSide) {
+                    allowCount = true;
+                    targetSideCounts = countsLeft;
+                } else if (directionMode === 'up' && !isLeftSide) {
+                    allowCount = true;
+                    targetSideCounts = countsRight;
+                }
+
+                if (allowCount && targetSideCounts) {
+                    targetSideCounts[detection.className]++;
+                    targetSideCounts.total++;
+                    countsTotal[detection.className]++;
+                    countsTotal.total++;
+                }
             }
         }
 
