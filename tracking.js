@@ -76,12 +76,13 @@ export function matchAndCountVehicles(detections) {
             const sweptUp = previousTop > lineY && currentTop <= lineY;
             let crossed = false;
 
+            // KIỂM TRA ĐIỀU KIỆN ĐẾM THEO HƯỚNG ĐƯỢC CHỌN TRÊN GIAO DIỆN
             if (directionMode === 'both') {
                 crossed = (movedDown && (crossedDown || sweptDown)) || (movedUp && (crossedUp || sweptUp));
             } else if (directionMode === 'down') {
-                crossed = movedDown && (crossedDown || sweptDown);
+                crossed = movedDown && (crossedDown || sweptDown); // Chỉ đếm khi đi từ trên xuống
             } else if (directionMode === 'up') {
-                crossed = movedUp && (crossedUp || sweptUp);
+                crossed = movedUp && (crossedUp || sweptUp); // Chỉ đếm khi đi từ dưới lên
             }
 
             if (crossed) {
