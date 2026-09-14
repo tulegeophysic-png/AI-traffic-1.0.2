@@ -62,7 +62,6 @@ export function stopAI() {
     if (!videoElement.srcObject) {
         videoElement.pause();
     } else {
-        // Nếu là camera trực tiếp (MediaStream), có thể tạm dừng hoặc giữ nguyên stream
         videoElement.pause();
     }
     const hasSource = videoElement.src || videoElement.srcObject;
@@ -79,7 +78,7 @@ export function captureFrame() {
     link.click();
 }
 
-// BỔ SUNG: Hàm kết nối Camera trực tiếp (Webcam hoặc luồng Stream WebRTC/MediaStream)
+// HÀM KẾT NỐI CAMERA TRỰC TIẾP
 export async function setupLiveCamera() {
     if (isRunning()) stopAI();
     try {
@@ -87,7 +86,7 @@ export async function setupLiveCamera() {
             video: {
                 width: { ideal: 1280 },
                 height: { ideal: 720 },
-                facingMode: 'environment' // Ưu tiên camera sau hoặc webcam ngoài
+                facingMode: 'environment'
             }
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);

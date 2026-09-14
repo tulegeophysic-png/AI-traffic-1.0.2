@@ -76,7 +76,7 @@ export function matchAndCountVehicles(detections) {
             const sweptUp = previousTop > lineY && currentTop <= lineY;
             let crossed = false;
 
-            // KIỂM TRA ĐIỀU KIỆN ĐẾM THEO HƯỚNG ĐƯỢC CHỌN TRÊN GIAO DIỆN[cite: 7]
+            // KIỂM TRA ĐIỀU KIỆN ĐẾM THEO HƯỚNG ĐƯỢC CHỌN TRÊN GIAO DIỆN[cite: 7, 10]
             if (directionMode === 'both') {
                 crossed = (movedDown && (crossedDown || sweptDown)) || (movedUp && (crossedUp || sweptUp));
             } else if (directionMode === 'down') {
@@ -89,10 +89,10 @@ export function matchAndCountVehicles(detections) {
                 oldData.counted = true;
                 const isLeftSide = oldData.side === 'left' || oldData.leftSideVotes >= oldData.rightSideVotes;
                 
-                // ÁNH XẠ HƯỚNG ĐẾM VỚI LÀN ĐƯỜNG:
-                // - 'down' (Từ trên xuống): Chỉ ghi nhận làn bên trái
-                // - 'up' (Từ dưới lên): Chỉ ghi nhận làn bên phải
-                // - 'both': Ghi nhận cả 2 bên
+                // LIÊN KẾT CHẶT CHẼ HƯỚNG ĐẾM VỚI LÀN ĐƯỜNG:
+                // - 'down' (Từ trên xuống): Bắt buộc chỉ đếm làn bên trái (isLeftSide = true), làn phải bỏ qua
+                // - 'up' (Từ dưới lên): Bắt buộc chỉ đếm làn bên phải (isLeftSide = false), làn trái bỏ qua
+                // - 'both': Đếm bình thường cả 2 bên theo đúng làn của xe
                 let allowCount = false;
                 let targetSideCounts = null;
 
@@ -101,10 +101,10 @@ export function matchAndCountVehicles(detections) {
                     targetSideCounts = isLeftSide ? countsLeft : countsRight;
                 } else if (directionMode === 'down' && isLeftSide) {
                     allowCount = true;
-                    targetSideCounts = countsLeft;
+                    targetSideCounts = countsLeft; // Chỉ nhận làn trái
                 } else if (directionMode === 'up' && !isLeftSide) {
                     allowCount = true;
-                    targetSideCounts = countsRight;
+                    targetSideCounts = countsRight; // Chỉ nhận làn phải
                 }
 
                 if (allowCount && targetSideCounts) {
