@@ -6,6 +6,8 @@
     <title>Hệ Thống Giám Sát & Đếm Phương Tiện Giao Thông AI (YOLOv10)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <!-- THÊM THƯ VIỆN SHEETJS ĐỂ HỖ TRỢ XUẤT FILE EXCEL (.xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             --bg-color: #0b132b;
@@ -67,6 +69,7 @@
             gap: 6px;
             align-items: center;
             margin-top: 8px;
+            flex-wrap: wrap;
         }
         .btn {
             padding: 5px 12px;
@@ -81,6 +84,7 @@
         .btn-danger { background-color: #dc2626; }
         .btn-success { background-color: #16a34a; }
         .btn-info { background-color: #0284c7; }
+        .btn-warning { background-color: #d97706; }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .status-pill {
@@ -152,8 +156,15 @@
         <!-- CỘT TRÁI -->
         <div class="left-column">
             <div class="panel">
-                <div class="controls-row" style="margin-top: 0; margin-bottom: 8px;">
-                    <input type="file" id="upload-video" accept="video/*" style="font-size: 11px;">
+                <!-- BỔ SUNG: NÚT KẾT NỐI CAMERA TRỰC TIẾP VÀ NÚT XUẤT EXCEL -->
+                <div class="controls-row" style="margin-top: 0; margin-bottom: 8px; justify-content: space-between;">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input type="file" id="upload-video" accept="video/*" style="font-size: 11px;">
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="btn-live-camera" class="btn btn-warning">🎥 Kết nối Camera trực tiếp</button>
+                        <button id="btn-export-excel" class="btn btn-success">📊 Xuất Excel</button>
+                    </div>
                 </div>
 
                 <div class="video-container">
@@ -173,7 +184,7 @@
                 </div>
             </div>
 
-            <!-- TÙY CHỈNH CONFIDENCE THRESHOLD (4 THANH TRƯỢT GỐC) -->
+            <!-- TÙY CHỈNH CONFIDENCE THRESHOLD -->
             <div class="panel">
                 <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-color);">
                     ⚙️ Tinh Chỉnh Mức Nhận Diện (Confidence Threshold) Đề Xuất:
@@ -288,7 +299,7 @@
                 </div>
             </div>
 
-            <!-- THÔNG TIN HỆ THỐNG (CHUẨN ẢNH 4) -->
+            <!-- THÔNG TIN HỆ THỐNG -->
             <div class="panel">
                 <div style="font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 6px;">⚙️ Thông Tin Phân Tích & Hệ Thống</div>
                 
@@ -302,8 +313,9 @@
                 </div>
 
                 <div class="info-box">
-                    ⚠️ <b>Lưu ý Threshold:</b><br>
-                    Confidence Threshold hoạt động chuẩn theo slider chỉnh tay
+                    ⚠️ <b>Lưu ý:</b><br>
+                    - Nút <b>Kết nối Camera trực tiếp</b> sẽ sử dụng Webcam hoặc thiết bị ghi hình gắn liền.<br>
+                    - Nút <b>Xuất Excel</b> giúp lưu ngay bảng dữ liệu thống kê ra file `.xlsx`.
                 </div>
             </div>
         </div>

@@ -78,3 +78,46 @@ export function updateUIStats() {
         chartInstance.update();
     }
 }
+
+// BỔ SUNG: Hàm xuất dữ liệu thống kê ra file Excel (.xlsx)
+export function exportToExcel() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const dataToExport = [
+        { "Loại phương tiện": "Ô tô (Car)", "Bên Trái": countsLeft.car, "Bên Phải": countsRight.car, "Tổng cộng": countsTotal.car },
+        { "Loại phương tiện": "Xe máy (Motorcycle)", "Bên Trái": countsLeft.motorcycle, "Bên Phải": countsRight.motorcycle, "Tổng cộng": countsTotal.motorcycle },
+        { "Loại phương tiện": "Xe buýt (Bus)", "Bên Trái": countsLeft.bus, "Bên Phải": countsRight.bus, "Tổng cộng": countsTotal.bus },
+        { "Loại phương tiện": "Xe tải (Truck)", "Bên Trái": countsLeft.truck, "Bên Phải": countsRight.truck, "Tổng cộng": countsTotal.truck },
+        { "Loại phương tiện": "TỔNG CỘNG", "Bên Trái": countsLeft.total, "Bên Phải": countsRight.total, "Tổng cộng": countsTotal.total }
+    ];
+
+    if (typeof XLSX === 'undefined') {
+        alert("Thư viện SheetJS (XLSX) chưa được tích hợp trong file index.html. Đang tiến hành xuất dạng CSV thay thế...");
+        exportToCSV(dataToExport, `BaoCaoGiaoThong_${timestamp}.csv`);
+        return;
+    }
+
+    try {
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "ThongKeGiaoThong");
+        XLSX.writeFile(workbook, `BaoCaoGiaoThong_${timestamp}.xlsx`);
+    } catch (error) {
+        console.error("Lỗi khi xuất file Excel:", error);
+        alert("Có lỗi xảy ra khi xuất file Excel!");
+    }
+}
+
+function exportToCSV(data, filename) {
+    const headers = Object.keys(data[0]);
+    let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+    data.forEach(row => {
+        csvContent += Object.values(row).join(",") + "\n";
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}

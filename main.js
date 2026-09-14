@@ -1,8 +1,8 @@
 import { loadModel, classConfidenceThresholds, session } from './model.js';
-import { initChart, setStatus, updateUIStats } from './dashboard.js';
+import { initChart, setStatus, updateUIStats, exportToExcel } from './dashboard.js';
 import { drawScene, resetLinePosition } from './counting.js';
 import { resetTracking } from './tracking.js';
-import { captureFrame, startAI, stopAI } from './video.js';
+import { captureFrame, startAI, stopAI, setupLiveCamera } from './video.js';
 
 export const videoElement = document.getElementById('video-source');
 export const canvas = document.getElementById('canvas');
@@ -51,6 +51,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-toggle-line').addEventListener('click', toggleCountingLineUI);
     document.getElementById('btn-reset-line').addEventListener('click', resetLinePosition);
 
+    // BỔ SUNG: Gắn sự kiện cho nút Xuất Excel và nút Kết nối Camera trực tiếp
+    const btnExportExcel = document.getElementById('btn-export-excel');
+    if (btnExportExcel) btnExportExcel.addEventListener('click', exportToExcel);
+
+    const btnLiveCamera = document.getElementById('btn-live-camera');
+    if (btnLiveCamera) btnLiveCamera.addEventListener('click', setupLiveCamera);
+
     setupSlider('conf-moto-slider', 'motorcycle', 'conf-moto-val');
     setupSlider('conf-car-slider', 'car', 'conf-car-val');
     setupSlider('conf-bus-slider', 'bus', 'conf-bus-val');
@@ -60,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initChart();
     loadModel(setStatus, () => {
-        if (videoElement.src) document.getElementById('btn-start').disabled = false;
+        if (videoElement.src || videoElement.srcObject) document.getElementById('btn-start').disabled = false;
     });
 });
 
@@ -188,9 +195,12 @@ function setupVideoUpload() {
         if (running) stopAI();
         resetSystemDataOnly();
         if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
+        
+        videoElement.srcObject = null; // Xóa stream camera nếu có
         videoObjectUrl = URL.createObjectURL(file);
         videoElement.src = videoObjectUrl;
         videoElement.load();
+        
         videoElement.onloadedmetadata = () => {
             canvas.width = videoElement.videoWidth;
             canvas.height = videoElement.videoHeight;
@@ -223,8 +233,10 @@ function resetSystem() {
     stopAI();
     resetSystemDataOnly();
     resetLinePosition();
-    if (videoElement && videoElement.src) {
-        videoElement.currentTime = 0;
+    if (videoElement) {
+        if (videoElement.src) {
+            videoElement.currentTime = 0;
+        }
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
         drawScene([]);

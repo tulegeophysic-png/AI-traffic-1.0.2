@@ -40,11 +40,12 @@ export function processFrame() {
 }
 
 export async function startAI() {
-    if (!videoElement.src || !session) return;
+    if (!videoElement.src && !videoElement.srcObject) return;
+    if (!session) return;
     try {
         await videoElement.play();
     } catch (error) {
-        console.error('Không thể phát video:', error);
+        console.error('Không thể phát video/camera:', error);
         stopAI();
         return;
     }
@@ -58,8 +59,14 @@ export async function startAI() {
 
 export function stopAI() {
     setRunning(false);
-    videoElement.pause();
-    document.getElementById('btn-start').disabled = !(videoElement.src && session);
+    if (!videoElement.srcObject) {
+        videoElement.pause();
+    } else {
+        // Nếu là camera trực tiếp (MediaStream), có thể tạm dừng hoặc giữ nguyên stream
+        videoElement.pause();
+    }
+    const hasSource = videoElement.src || videoElement.srcObject;
+    document.getElementById('btn-start').disabled = !(hasSource && session);
     document.getElementById('btn-stop').disabled = true;
     document.getElementById('btn-capture').disabled = true;
     setStatus('stopped', 'AI STOPPED');
@@ -70,6 +77,41 @@ export function captureFrame() {
     link.download = `capture-${Date.now()}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
+}
+
+// BỔ SUNG: Hàm kết nối Camera trực tiếp (Webcam hoặc luồng Stream WebRTC/MediaStream)
+export async function setupLiveCamera() {
+    if (isRunning()) stopAI();
+    try {
+        const constraints = {
+            video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: 'environment' // Ưu tiên camera sau hoặc webcam ngoài
+            }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        videoElement.src = '';
+        videoElement.srcObject = stream;
+        videoElement.load();
+        
+        videoElement.onloadedmetadata = () => {
+            canvas.width = videoElement.videoWidth || 1280;
+            canvas.height = videoElement.videoHeight || 720;
+            inferenceCanvas.width = canvas.width;
+            inferenceCanvas.height = canvas.height;
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            drawScene([]);
+            if (session) {
+                document.getElementById('btn-start').disabled = false;
+                setStatus('ready', 'CAMERA READY');
+            }
+        };
+    } catch (error) {
+        console.error('Không thể truy cập camera trực tiếp:', error);
+        alert('Lỗi: Không thể kết nối với camera. Vui lòng kiểm tra quyền truy cập thiết bị!');
+    }
 }
 
 function updateFps(now) {
