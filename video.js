@@ -59,11 +59,7 @@ export async function startAI() {
 
 export function stopAI() {
     setRunning(false);
-    if (!videoElement.srcObject) {
-        videoElement.pause();
-    } else {
-        videoElement.pause();
-    }
+    videoElement.pause();
     const hasSource = videoElement.src || videoElement.srcObject;
     document.getElementById('btn-start').disabled = !(hasSource && session);
     document.getElementById('btn-stop').disabled = true;
@@ -78,21 +74,27 @@ export function captureFrame() {
     link.click();
 }
 
-// HÀM KẾT NỐI CAMERA TRỰC TIẾP
+// CẬP NHẬT: Lấy URL linh hoạt từ dropdown chọn khu vực hoặc nhập tay
 export async function setupLiveCamera() {
     if (isRunning()) stopAI();
+    
+    const selectElement = document.getElementById('camera-url-select');
+    let streamUrl = selectElement ? selectElement.value : '';
+
+    // Nếu chưa chọn trong danh sách, hiển thị hộp thoại để nhập đường dẫn riêng cho khu vực mới
+    if (!streamUrl) {
+        streamUrl = prompt("Nhập địa chỉ URL luồng camera cho khu vực mới:", "http://");
+    }
+
+    if (!streamUrl) {
+        alert("Vui lòng chọn hoặc nhập đường dẫn URL camera hợp lệ!");
+        return;
+    }
+
     try {
-        const constraints = {
-            video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: 'environment'
-            }
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        
-        videoElement.src = '';
-        videoElement.srcObject = stream;
+        videoElement.srcObject = null;
+        videoElement.src = streamUrl;
+        videoElement.crossOrigin = "anonymous";
         videoElement.load();
         
         videoElement.onloadedmetadata = () => {
@@ -107,9 +109,14 @@ export async function setupLiveCamera() {
                 setStatus('ready', 'CAMERA READY');
             }
         };
+
+        videoElement.onerror = () => {
+            alert('Không thể kết nối tới khu vực camera này. Kiểm tra lại đường dẫn URL hoặc chính sách CORS của server camera!');
+            setStatus('error', 'CAMERA ERROR');
+        };
     } catch (error) {
-        console.error('Không thể truy cập camera trực tiếp:', error);
-        alert('Lỗi: Không thể kết nối với camera. Vui lòng kiểm tra quyền truy cập thiết bị!');
+        console.error('Lỗi thiết lập luồng camera:', error);
+        alert('Lỗi kết nối luồng camera khu vực.');
     }
 }
 
